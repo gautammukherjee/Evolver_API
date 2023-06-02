@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\api\UserController;
+use App\Http\Controllers\api\TAController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,16 +17,11 @@ use App\Http\Controllers\api\UserController;
 */
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    // return $request->user(); // by default
-    return $request->user->user_id();
+    return $request->user();
 });
 
-Route::group(['middleware' => 'api'], function ($router) {
-    //Login
-    Route::post('/login', [UserController::class, 'login']);
-    //Register
-    Route::post('/register', [UserController::class, 'register']);
-    //Profile
-    Route::get('/profile', [UserController::class, 'profile']);
+Route::post('/login', [UserController::class, 'login']);
+// Route::post('/login','App\Http\Controllers\api\UserController@login');
 
-});
+Route::get('/getTasLists', [TAController::class, 'getTasLists']);
+// Route::get('/getTasLists','App\Http\Controllers\api\UserController@getTasLists');
