@@ -26,4 +26,5 @@ Route::post('/login', [UserController::class, 'login']);
 Route::get('/getNodeSelects', [NodeController::class, 'getNodeSelects']);
 Route::post('/getSourceNode', [NodeController::class, 'getSourceNode']);
 Route::post('/getDestinationNode', [NodeController::class, 'getDestinationNode']);
+Route::post('/getMasterLists', [NodeController::class, 'getMasterLists']);
 Route::get('/getEdgeType', [NodeController::class, 'getEdgeType']);
