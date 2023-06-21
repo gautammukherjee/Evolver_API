@@ -33,7 +33,7 @@ class NodeController extends Controller
 
     public function getNodeSelects()
     {
-        $sql = "select nnrt_id,name as pair_name from graphs.node_node_relation_types where deleted=0";
+        $sql = "select nnrt_id,name as pair_name from 'graphs.node_node_relation_types' where deleted=0";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -43,7 +43,7 @@ class NodeController extends Controller
 
     public function getEdgeType()
     {
-        $sql = "select edge_type_id,name as edge_type_name from graphs.edge_types where deleted=0";
+        $sql = "select edge_type_id,name as edge_type_name from 'graphs.edge_types' where deleted=0";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -53,7 +53,7 @@ class NodeController extends Controller
 
     public function getSourceNode(Request $request)
     {
-        $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id"; //join graphs.nodes n2 on ndr.destination_node=n2.node_id
+        $sql = "select distinct ndr.source_node,n1.name as source_node_name from 'graphs.node_edge_rels' ndr join graphs.nodes n1 on ndr.source_node=n1.node_id"; //join graphs.nodes n2 on ndr.destination_node=n2.node_id
         $sql = $sql . " where 1=1";
         //$sql .= "-- and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
@@ -69,7 +69,7 @@ class NodeController extends Controller
 
     public function getDestinationNode(Request $request)
     {
-        $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id";
+        $sql = "select distinct destination_node,n2.name as destination_node_name from 'graphs.node_edge_rels' ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id";
         $sql = $sql . " where 1=1";
         //$sql .= "-- and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
