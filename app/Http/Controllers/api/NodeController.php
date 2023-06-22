@@ -85,7 +85,7 @@ class NodeController extends Controller
 
     public function getMasterLists(Request $request)
     {
-        $sql = "with recursive graph_data (sourcenode,destinationnode,level,nnrt_id) as (select distinct source_node,destination_node,1 as label,nnrt_id from graphs.node_edge_rels ndr where 1=1";
+        $sql = "with recursive graph_data (sourcenode,destinationnode,level,nnrt_id) as (select distinct source_node,destination_node,1 as label,nnrt_id from 'graphs.node_edge_rels' ndr where 1=1";
         if ($request->source_node != "" && $request->source_node != 'undefined') {
             $sourceNodeImplode = implode(",", $request->source_node);
             $sql = $sql . " and source_node in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
@@ -109,7 +109,7 @@ class NodeController extends Controller
         $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
         // -- and edge_type_id in (21) -- pass edge_type_id for Level 1
         $sql = $sql . " union all ";
-        $sql = $sql . " select distinct ndr.source_node,ndr.destination_node,level+1  as level,ndr.nnrt_id from graphs.node_edge_rels ndr,graph_data gd where gd.destinationnode=ndr.source_node ";
+        $sql = $sql . " select distinct ndr.source_node,ndr.destination_node,level+1  as level,ndr.nnrt_id from 'graphs.node_edge_rels' ndr,graph_data gd where gd.destinationnode=ndr.source_node ";
         $sql = $sql . "and ndr.source_node<>ndr.destination_node"; //-- same node can't connect with itself
         if ($request->nnrt_id != "") {
             $sql = $sql . " and ndr.nnrt_id in (" . $request->nnrt_id . ")"; // -- For Level 2 nntr selection (and above)
@@ -126,7 +126,7 @@ class NodeController extends Controller
         $sql = $sql . " and level < 2 )"; //-- upto this level keep as it is
         // -- SEARCH depth FIRST BY sourcenode SET ordercol
         $sql = $sql . " cycle  sourcenode set is_cycle using path,";
-        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_row) as (select source_node,n1.name as source_node_name,destination_node,n2.name as destination_node_name,level,ner.nnrt_id,array_agg(edge_type_id),array_agg(row(edge_type_id,article_type_id)) edge_type_article_type_row,array_agg(ner.id) as node_edge_rel_ids from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id ";
+        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_row) as (select source_node,n1.name as source_node_name,destination_node,n2.name as destination_node_name,level,ner.nnrt_id,array_agg(edge_type_id),array_agg(row(edge_type_id,article_type_id)) edge_type_article_type_row,array_agg(ner.id) as node_edge_rel_ids from 'graphs.node_edge_rels' ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node join 'graphs.nodes' n1 on gd.sourcenode=n1.node_id join 'graphs.nodes' n2 on gd.destinationnode=n2.node_id ";
         // $sql = $sql . " -- where 1=1";
         $sql = $sql . " group by 1,2,3,4,5,6 ) select * from relevant_data rd order by 5";
         // $sql = $sql ." offset 50";
