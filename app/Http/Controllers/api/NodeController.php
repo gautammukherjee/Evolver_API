@@ -33,7 +33,7 @@ class NodeController extends Controller
 
     public function getNodeSelects()
     {
-        $sql = "select nnrt_id,name as pair_name from <graphs>.node_node_relation_types where deleted=0";
+        $sql = "select nnrt_id,name as pair_name from graphs.node_node_relation_types where deleted=0";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
