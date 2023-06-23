@@ -24,6 +24,7 @@ Route::post('/login', [UserController::class, 'login']);
 // Route::post('/login','App\Http\Controllers\api\UserController@login');
 
 Route::get('/getNodeSelects', [NodeController::class, 'getNodeSelects']);
+Route::post('/getNodeSelects2', [NodeController::class, 'getNodeSelects2']);
 Route::post('/getSourceNode', [NodeController::class, 'getSourceNode']);
 Route::post('/getDestinationNode', [NodeController::class, 'getDestinationNode']);
 Route::post('/getMasterLists', [NodeController::class, 'getMasterLists']);
