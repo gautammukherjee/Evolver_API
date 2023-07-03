@@ -209,9 +209,9 @@ class NodeController extends Controller
         // $sql = $sql ." offset 50";
 
         if (!empty($destinationNodeImplode))
-            $sql = $sql . " limit 500";
+            $sql = $sql . " limit 1000";
         else
-            $sql = $sql . " limit 200";
+            $sql = $sql . " limit 1000";
 
         // echo $sql;
 
