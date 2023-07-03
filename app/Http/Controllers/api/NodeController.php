@@ -73,6 +73,8 @@ class NodeController extends Controller
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
         $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
+
+        
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -94,6 +96,7 @@ class NodeController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
         // echo $sql;
+        
         $result = DB::select($sql);
         return response()->json([
             'destinationNodeRecords' => $result
