@@ -30,5 +30,9 @@ Route::post('/getDestinationNode', [NodeController::class, 'getDestinationNode']
 Route::post('/getMasterLists', [NodeController::class, 'getMasterLists']);
 Route::get('/getEdgeType', [NodeController::class, 'getEdgeType']);
 
+
 Route::post('/distribution_by_relation_grp', [ChartController::class, 'distributionByRelationGrp']);
 Route::post('/details_of_association_type', [ChartController::class, 'details_of_association_type']);
+
+Route::post('/getEdgeTypeName', [NodeController::class, 'getEdgeTypeName']);
+
