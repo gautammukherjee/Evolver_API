@@ -81,11 +81,14 @@ class NodeController extends Controller
         if ($request->nnrt_id != "") {
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
-        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+
+        $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
+
 
         if ($request->searchval != "") {
             $sql = $sql . " and n1.name ilike '%$request->searchval%' "; //same node can't connect with itself";
         }
+
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -96,13 +99,18 @@ class NodeController extends Controller
     public function getDestinationNode(Request $request)
     {
         $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id";
+
+        $sql = $sql . " where 1=1";
+
         $sql = $sql . " where 1=1 ";
+
         //$sql .= "-- and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
         $sql = $sql . " and source_node<>destination_node limit 1000"; //same node can't connect with itself";
         // echo $sql;
+        
         $result = DB::select($sql);
         return response()->json([
             'destinationNodeRecords' => $result
