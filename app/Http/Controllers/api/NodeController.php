@@ -102,15 +102,13 @@ class NodeController extends Controller
 
         $sql = $sql . " where 1=1";
 
-        $sql = $sql . " where 1=1 ";
-
         //$sql .= "-- and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
         $sql = $sql . " and source_node<>destination_node limit 1000"; //same node can't connect with itself";
         // echo $sql;
-        
+
         $result = DB::select($sql);
         return response()->json([
             'destinationNodeRecords' => $result
