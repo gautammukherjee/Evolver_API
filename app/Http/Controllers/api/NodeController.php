@@ -77,18 +77,18 @@ class NodeController extends Controller
     public function getSourceNode(Request $request)
     {
         $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id"; //join graphs.nodes n2 on ndr.destination_node=n2.node_id
+        $sql = $sql . " join graphs.node_syns ns1 on n1.node_id=ns1.node_id "; // -- (Uncomment when source_node_synonym name searched)
+
         $sql = $sql . " where 1=1";
+        // $sql = $sql . " and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
-
         $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
-
-
         if ($request->searchval != "") {
-            $sql = $sql . " and n1.name ilike '%$request->searchval%' "; //same node can't connect with itself";
+            $sql = $sql . " and n1.name ilike '%$request->searchval%' "; // search with source node
+            $sql = $sql . " and ns1.name ilike '%$request->searchval%' "; // search with synonym source node
         }
-
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -98,15 +98,19 @@ class NodeController extends Controller
 
     public function getDestinationNode(Request $request)
     {
-        $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id";
+        $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
+        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
 
         $sql = $sql . " where 1=1";
-
-        //$sql .= "-- and source_node in (11499,18153)";
+        // $sql = $sql . " and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
-        $sql = $sql . " and source_node<>destination_node limit 1000"; //same node can't connect with itself";
+        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+        if ($request->searchval != "") {
+            $sql = $sql . " and n2.name ilike '%$request->searchval%' "; //serach with destination node
+            $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
+        }
         // echo $sql;
 
         $result = DB::select($sql);
