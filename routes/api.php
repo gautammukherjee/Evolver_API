@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\api\UserController;
 use App\Http\Controllers\api\NodeController;
 use App\Http\Controllers\api\ChartController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -35,4 +36,4 @@ Route::post('/distribution_by_relation_grp', [ChartController::class, 'distribut
 Route::post('/details_of_association_type', [ChartController::class, 'details_of_association_type']);
 
 Route::post('/getEdgeTypeName', [NodeController::class, 'getEdgeTypeName']);
-
+Route::post('/getDistributionRelationType', [NodeController::class, 'getDistributionRelationType']);
