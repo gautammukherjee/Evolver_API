@@ -64,15 +64,31 @@ class NodeController extends Controller
         ]);
     }
 
+    public function getEdgeTypeName(Request $request)
+    {
+        $sql = "select name as edge_type_name from graphs.edge_types where edge_type_id in (" . $request->edge_type_ids . ")";
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'edgeTypeName' => $result
+        ]);
+    }
+
     public function getSourceNode(Request $request)
     {
         $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id"; //join graphs.nodes n2 on ndr.destination_node=n2.node_id
+        $sql = $sql . " join graphs.node_syns ns1 on n1.node_id=ns1.node_id "; // -- (Uncomment when source_node_synonym name searched)
+
         $sql = $sql . " where 1=1";
-        //$sql .= "-- and source_node in (11499,18153)";
+        // $sql = $sql . " and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
         $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
+        if ($request->searchval != "") {
+            $sql = $sql . " and n1.name ilike '%$request->searchval%' "; // search with source node
+            $sql = $sql . " and ns1.name ilike '%$request->searchval%' "; // search with synonym source node
+        }
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -82,14 +98,21 @@ class NodeController extends Controller
 
     public function getDestinationNode(Request $request)
     {
-        $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id";
-        $sql = $sql . " where 1=1 ";
-        //$sql .= "-- and source_node in (11499,18153)";
+        $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
+        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
+
+        $sql = $sql . " where 1=1";
+        // $sql = $sql . " and source_node in (11499,18153)";
         if ($request->nnrt_id != "") {
             $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
-        $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
+        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+        if ($request->searchval != "") {
+            $sql = $sql . " and n2.name ilike '%$request->searchval%' "; //serach with destination node
+            $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
+        }
         // echo $sql;
+
         $result = DB::select($sql);
         return response()->json([
             'destinationNodeRecords' => $result
@@ -120,12 +143,18 @@ class NodeController extends Controller
 
         $sql = "with recursive graph_data (sourcenode,destinationnode,level,nnrt_id) as (select distinct source_node,destination_node,1 as label,nnrt_id from graphs.node_edge_rels ndr where 1=1";
 
+        // if (!empty($request->node_id)) {
+        //     //1. Node ID
+        //     // echo "heree1: " . $request->node_id;
+        //     $sql = $sql . " and source_node = " . $request->node_id;
+        // } else {
         //1. Source Node
         $sourceNode = collect($request->source_node);
         $sourceNodeImplode = $sourceNode->implode(', ');
-        // echo "heree: " . $sourceNodeImplode;
+        // echo "heree2: " . $sourceNodeImplode;
         if (!empty($sourceNodeImplode))
             $sql = $sql . " and source_node in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
+        // }
 
         //2. Destination Node
         $destinationNode = collect($request->destination_node);
@@ -173,6 +202,7 @@ class NodeController extends Controller
         */
         // -- keep commented for future reference
 
+        //7. level select 1 or 2
         if ($request->nnrt_id2 == "") {
             $sql = $sql . " and level < 1 )"; //-- upto this level keep as it is
         } else {
@@ -181,15 +211,17 @@ class NodeController extends Controller
 
         // -- SEARCH depth FIRST BY sourcenode SET ordercol
         $sql = $sql . " cycle  sourcenode set is_cycle using path,";
-        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_row) as (select source_node,n1.name as source_node_name,destination_node,n2.name as destination_node_name,level,ner.nnrt_id,array_agg(edge_type_id),array_agg(row(edge_type_id,article_type_id)) edge_type_article_type_row,array_agg(ner.id) as node_edge_rel_ids from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id ";
+        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_ne_ids,path) as (
+        select source_node,n1.name as source_node_name,destination_node,n2.name as destination_node_name,level,ner.nnrt_id,array_agg(edge_type_id),array_agg(row(edge_type_id,article_type_id,ner.id)) edge_type_article_type_ne_id,
+        path from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id ";
         // $sql = $sql . " -- where 1=1";
-        $sql = $sql . " group by 1,2,3,4,5,6 ) select * from relevant_data rd order by 5";
+        $sql = $sql . " group by 1,2,3,4,5,6,9 ) select * from relevant_data rd order by 5";
         // $sql = $sql ." offset 50";
 
         if (!empty($destinationNodeImplode))
             $sql = $sql . " limit 1000";
         else
-            $sql = $sql . " limit 200";
+            $sql = $sql . " limit 1000";
 
         // echo $sql;
 
