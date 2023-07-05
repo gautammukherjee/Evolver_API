@@ -77,7 +77,7 @@ class NodeController extends Controller
     public function getSourceNode(Request $request)
     {
         $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id"; //join graphs.nodes n2 on ndr.destination_node=n2.node_id
-        $sql = $sql . " join graphs.node_syns ns1 on n1.node_id=ns1.node_id "; // -- (Uncomment when source_node_synonym name searched)
+        // $sql = $sql . " join graphs.node_syns ns1 on n1.node_id=ns1.node_id "; // -- (Uncomment when source_node_synonym name searched)
 
         $sql = $sql . " where 1=1";
         // $sql = $sql . " and source_node in (11499,18153)";
@@ -86,7 +86,8 @@ class NodeController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
         if ($request->searchval != "") {
-            $sql = $sql . " and (n1.name ilike '%$request->searchval%' OR ns1.name ilike '%$request->searchval%') "; // search with synonym source node
+            $sql = $sql . " and n1.name ilike '%$request->searchval%' "; // search with source node
+            // $sql = $sql . " and ns1.name ilike '%$request->searchval%' "; // search with synonym source node
         }
         // echo $sql;
         $result = DB::select($sql);
@@ -97,7 +98,7 @@ class NodeController extends Controller
     public function getDestinationNode(Request $request)
     {
         $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
-        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
+        // $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
 
         $sql = $sql . " where 1=1";
         // $sql = $sql . " and source_node in (11499,18153)";
@@ -106,7 +107,8 @@ class NodeController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
         if ($request->searchval != "") {
-            $sql = $sql . " and (n2.name ilike '%$request->searchval%' OR ns2.name ilike '%$request->searchval%') "; // search with synonym destination node
+            $sql = $sql . " and n2.name ilike '%$request->searchval%' "; //serach with destination node
+            // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
         }
         // echo $sql;
 
@@ -229,7 +231,27 @@ class NodeController extends Controller
 
     public function getDistributionRelationType(Request $request)
     {
-        $sql = "with recursive graph_data (sourcenode,destinationnode,level,nnrt_id) as (select distinct source_node,destination_node,1 as label,nnrt_id from graphs.node_edge_rels ndr where 1=1";
+        $sql = "SELECT source.edge_type_id, source.Temp_Edge_Types_Name AS Temp_Edge_Types_Name, source.source_node_id, source.Source_Node_Name, source.destination_node_id,
+        source.Destination_Node_Name, COUNT(*) as count
+                FROM (SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, 
+                neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,
+                nnrtn.name AS Node_Node_Relation_Types, 
+                nnrtn.nnrt_id,	  
+                nsn.name AS Source_Node_Name,
+                nsn.node_id as source_node_id,	  
+                ndn.name AS Destination_Node_Name,
+                ndn.node_id as destination_node_id,	  
+                et.name AS Edge_Types_Name,
+                tet.edge_type_id,
+                tet.group_name AS Temp_Edge_Types_Name FROM source.sci_lits as sl 
+                INNER JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid = neslr.pmid
+                JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id 
+                JOIN graphs.node_node_relation_types AS nnrtn ON nern.nnrt_id = nnrtn.nnrt_id 
+                JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id 
+                JOIN graphs.node_edge_rels AS ner ON nern.id = ner.id 
+                JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id 
+                JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
+                LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id where 1=1";
 
         $sourceNode = collect($request->source_node);
         $sourceNodeImplode = $sourceNode->implode(', ');
