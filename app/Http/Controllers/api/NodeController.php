@@ -66,7 +66,12 @@ class NodeController extends Controller
 
     public function getEdgeTypeName(Request $request)
     {
-        $sql = "select name as edge_type_name from graphs.edge_types where edge_type_id in (" . $request->edge_type_ids . ")";
+        $sql = "select name as edge_type_name from graphs.edge_types ";
+        $edge_type_ids = collect($request->edge_type_ids);
+        $edge_type_idsImplode = $edge_type_ids->implode(', ');
+        if (!empty($edge_type_idsImplode))
+            $sql = $sql . " where edge_type_id in (" . $edge_type_idsImplode . ")"; // pass node-node relation type id
+
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -76,8 +81,8 @@ class NodeController extends Controller
 
     public function getSourceNode(Request $request)
     {
-        $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id"; //join graphs.nodes n2 on ndr.destination_node=n2.node_id
-        // $sql = $sql . " join graphs.node_syns ns1 on n1.node_id=ns1.node_id "; // -- (Uncomment when source_node_synonym name searched)
+        $sql = "select distinct ns1.node_syn_id, ns1.name as syn_node_name,ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id"; //join graphs.nodes n2 on ndr.destination_node=n2.node_id
+        $sql = $sql . " join graphs.node_syns ns1 on n1.node_id=ns1.node_id "; // -- (Uncomment when source_node_synonym name searched)
 
         $sql = $sql . " where 1=1";
         // $sql = $sql . " and source_node in (11499,18153)";
@@ -86,9 +91,10 @@ class NodeController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node"; //same node can't connect with itself";
         if ($request->searchval != "") {
-            $sql = $sql . " and n1.name ilike '%$request->searchval%' "; // search with source node
+            $sql = $sql . " and (n1.name ilike '%$request->searchval%' OR ns1.name ilike '%$request->searchval%')"; // search with source node
             // $sql = $sql . " and ns1.name ilike '%$request->searchval%' "; // search with synonym source node
         }
+        $sql = $sql . "order by source_node_name";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -97,8 +103,8 @@ class NodeController extends Controller
     }
     public function getDestinationNode(Request $request)
     {
-        $sql = "select distinct destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
-        // $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
+        $sql = "select distinct ns2.node_syn_id, ns2.name as syn_node_name, destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
+        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
 
         $sql = $sql . " where 1=1";
         // $sql = $sql . " and source_node in (11499,18153)";
@@ -107,9 +113,10 @@ class NodeController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
         if ($request->searchval != "") {
-            $sql = $sql . " and n2.name ilike '%$request->searchval%' "; //serach with destination node
+            $sql = $sql . " and (n2.name ilike '%$request->searchval%' OR ns2.name ilike '%$request->searchval%')"; //serach with destination node
             // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
         }
+        $sql = $sql . "order by destination_node_name";
         // echo $sql;
 
         $result = DB::select($sql);
