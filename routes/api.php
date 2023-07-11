@@ -37,4 +37,5 @@ Route::post('/details_of_association_type', [ChartController::class, 'details_of
 Route::post('/pmid_count_with_gene_disease', [ChartController::class, 'pmid_count_with_gene_disease']);
 
 Route::post('/getEdgeTypeName', [NodeController::class, 'getEdgeTypeName']);
+Route::post('/getEdgePMIDLists', [NodeController::class, 'getEdgePMIDLists']);
 Route::post('/getDistributionRelationType', [NodeController::class, 'getDistributionRelationType']);
