@@ -226,7 +226,7 @@ class NodeController extends Controller
         if (!empty($destinationNodeImplode))
             $sql = $sql . " limit 2000";
         else
-            $sql = $sql . " limit 100";
+            $sql = $sql . " limit 1000";
 
         // echo $sql;
 
