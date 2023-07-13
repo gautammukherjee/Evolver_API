@@ -226,7 +226,7 @@ class NodeController extends Controller
         if (!empty($destinationNodeImplode))
             $sql = $sql . " limit 2000";
         else
-            $sql = $sql . " limit 1000";
+            $sql = $sql . " limit 2000";
 
         // echo $sql;
 
@@ -280,9 +280,9 @@ class NodeController extends Controller
     public function getEdgePMIDLists(Request $request)
     {
         $sql = "select distinct neslr.pmid";
-        // $sql = $sql ." ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
+        $sql = $sql . " ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
         $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
-        // $sql = $sql ." join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
+        $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
 
         $ne_ids = collect($request->ne_ids);
         $ne_idsImplode = $ne_ids->implode(', ');
