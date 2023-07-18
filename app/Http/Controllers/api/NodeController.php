@@ -154,11 +154,17 @@ class NodeController extends Controller
         //     $sql = $sql . " and source_node = " . $request->node_id;
         // } else {
         //1. Source Node
+
+        $sourceNodeId = '';
+        if (!empty($request->node_id)) {
+            $sourceNodeId = ", " . $request->node_id;
+        }
+
         $sourceNode = collect($request->source_node);
         $sourceNodeImplode = $sourceNode->implode(', ');
         // echo "heree2: " . $sourceNodeImplode;
         if (!empty($sourceNodeImplode))
-            $sql = $sql . " and source_node in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
+            $sql = $sql . " and source_node in (" . $sourceNodeImplode . $sourceNodeId . ")"; // pass node-node relation type id
         // }
 
         //2. Destination Node
