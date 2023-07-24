@@ -25,8 +25,8 @@ Route::post('/login', [UserController::class, 'login']);
 // Route::post('/login','App\Http\Controllers\api\UserController@login');
 
 Route::get('/getNodeSelects', [NodeController::class, 'getNodeSelects']);
-Route::post('/getNodeSelects2', [NodeController::class, 'getNodeSelects2']);
 Route::post('/getSourceNode', [NodeController::class, 'getSourceNode']);
+
 Route::post('/getDestinationNode', [NodeController::class, 'getDestinationNode']);
 Route::post('/getMasterLists', [NodeController::class, 'getMasterLists']);
 Route::get('/getEdgeType', [NodeController::class, 'getEdgeType']);
@@ -39,3 +39,8 @@ Route::post('/pmid_count_with_gene_disease', [ChartController::class, 'pmid_coun
 Route::post('/getEdgeTypeName', [NodeController::class, 'getEdgeTypeName']);
 Route::post('/getEdgePMIDLists', [NodeController::class, 'getEdgePMIDLists']);
 Route::post('/getDistributionRelationType', [NodeController::class, 'getDistributionRelationType']);
+
+//2 level
+Route::post('/getNodeSelects2', [NodeController::class, 'getNodeSelects2']);
+Route::post('/getSourceNode2', [NodeController::class, 'getSourceNode2']);
+Route::post('/getDestinationNode2', [NodeController::class, 'getDestinationNode2']);
