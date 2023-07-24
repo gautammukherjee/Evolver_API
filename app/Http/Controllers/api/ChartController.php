@@ -15,7 +15,7 @@ class ChartController extends Controller
         // $from_date = $year . '-' . $month . '-' . $day;
         //echo $from_date;
 
-        $sql = "SELECT source.edge_type_id, source.Temp_Edge_Types_Name AS Temp_Edge_Types_Name, COUNT(*) as count
+        $sql = "SELECT source.Temp_Edge_Types_Name AS Temp_Edge_Types_Name, COUNT(*) as count
 		FROM (SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, 
         neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,
         nnrtn.name AS Node_Node_Relation_Types, 
@@ -69,7 +69,7 @@ class ChartController extends Controller
         }
 
         $sql = $sql . " ) AS source";
-        $sql = $sql . " GROUP BY 1,2 ORDER BY 1 ASC";
+        $sql = $sql . " GROUP BY 1 ORDER BY 2 DESC";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([

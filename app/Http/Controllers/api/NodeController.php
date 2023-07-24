@@ -216,15 +216,15 @@ class NodeController extends Controller
 
         // -- SEARCH depth FIRST BY sourcenode SET ordercol
         $sql = $sql . " cycle  sourcenode set is_cycle using path,";
-        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_ne_ids,path) as (
+        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_ne_ids,ne_ids,path) as (
         select source_node,n1.name as source_node_name,destination_node,n2.name as destination_node_name,level,ner.nnrt_id,array_agg(edge_type_id),array_agg(row(edge_type_id,article_type_id,ner.id)) edge_type_article_type_ne_id,
-        path from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id ";
+        array_agg(distinct ner.id),path from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id ";
         // $sql = $sql . " -- where 1=1";
-        $sql = $sql . " group by 1,2,3,4,5,6,9 ) select * from relevant_data rd order by 5";
+        $sql = $sql . " group by 1,2,3,4,5,6,10 ) select * from relevant_data rd order by 5";
         // $sql = $sql ." offset 50";
 
         if (!empty($destinationNodeImplode))
-            $sql = $sql . " limit 1000";
+            $sql = $sql . " limit 2000";
         else
             $sql = $sql . " limit 1000";
 
@@ -235,9 +235,6 @@ class NodeController extends Controller
             'masterListsData' => $result
         ]);
     }
-
-
-
 
     public function getDistributionRelationType(Request $request)
     {
@@ -278,6 +275,25 @@ class NodeController extends Controller
         $result = DB::select($sql);
         return response()->json([
             'distributionData' => $result
+        ]);
+    }
+
+    public function getEdgePMIDLists(Request $request)
+    {
+        $sql = "select distinct neslr.pmid";
+        // $sql = $sql ." ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
+        $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
+        // $sql = $sql ." join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
+
+        $ne_ids = collect($request->ne_ids);
+        $ne_idsImplode = $ne_ids->implode(', ');
+        if (!empty($ne_idsImplode))
+            $sql = $sql . " where neslr.ne_id in (" . $ne_idsImplode . ")"; // pass node-node relation type id
+
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'pmidLists' => $result
         ]);
     }
 }
