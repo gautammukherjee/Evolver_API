@@ -396,7 +396,7 @@ class NodeController extends Controller
         if (!empty($ne_idsImplode))
             $sql = $sql . " where neslr.ne_id in (" . $ne_idsImplode . ")"; // pass node-node relation type id
 
-        // echo $sql;
+        //echo $sql;
         $result = DB::select($sql);
         return response()->json([
             'pmidLists' => $result
