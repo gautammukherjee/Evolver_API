@@ -461,4 +461,3 @@ class NodeController extends Controller
         ]);
     }
 }
-
