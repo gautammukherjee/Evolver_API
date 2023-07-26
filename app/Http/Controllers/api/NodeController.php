@@ -345,7 +345,20 @@ class NodeController extends Controller
 
     public function getDistributionRelationType(Request $request)
     {
-        $sql = "SELECT source.edge_type_id, source.Temp_Edge_Types_Name AS Temp_Edge_Types_Name, source.source_node_id, source.Source_Node_Name, source.destination_node_id,source.Destination_Node_Name, COUNT(*) as count FROM (SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,nnrtn.name AS Node_Node_Relation_Types, nnrtn.nnrt_id,nsn.name AS Source_Node_Name,nsn.node_id as source_node_id,ndn.name AS Destination_Node_Name,ndn.node_id as destination_node_id,et.name AS Edge_Types_Name,tet.edge_type_id,tet.group_name AS Temp_Edge_Types_Name FROM source.sci_lits as sl INNER JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid = neslr.pmid JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id JOIN graphs.node_node_relation_types AS nnrtn ON nern.nnrt_id = nnrtn.nnrt_id JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id JOIN graphs.node_edge_rels AS ner ON nern.id = ner.id JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id where ";
+        $sql = "SELECT source.edge_type_id, source.Edge_Types_Name AS Edge_Types_Name, source.source_node_id, 
+        source.Source_Node_Name, source.destination_node_id,source.Destination_Node_Name, COUNT(*) 
+        as count FROM 
+        (SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, neslr.pmid 
+        AS Node_Edge_Sci_Lit_Rels_pmid,nnrtn.name AS Node_Node_Relation_Types, nnrtn.nnrt_id,nsn.name AS Source_Node_Name,nsn.node_id 
+        as source_node_id,ndn.name AS Destination_Node_Name,ndn.node_id as destination_node_id,et.name AS Edge_Types_Name,et.edge_type_id, 
+        tet.edge_group_id,tet.name AS Grouped_Edge_Types_Name FROM source.sci_lits as sl INNER JOIN graphs.node_edge_sci_lit_rels AS neslr 
+        ON sl.pmid = neslr.pmid JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id JOIN graphs.node_node_relation_types AS nnrtn 
+        ON nern.nnrt_id = nnrtn.nnrt_id JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id JOIN graphs.node_edge_rels 
+        AS ner ON nern.id = ner.id JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id 
+        -- JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id 
+        -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id 
+        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id 
+        JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id where ";
         // sl.publication_date > '2017-06-01' AND
         $sql = $sql . " nsn.node_id <> ndn.node_id ";
         // $sql = $sql . " AND nsn.name NOT IN ('WAS','IMPACT', 'HR', 'SIT') AND ndn.name NOT IN ('WAS','IMPACT', 'HR', 'SIT')";
@@ -396,6 +409,29 @@ class NodeController extends Controller
         $ne_idsImplode = $ne_ids->implode(', ');
         if (!empty($ne_idsImplode))
             $sql = $sql . " where neslr.ne_id in (" . $ne_idsImplode . ")"; // pass node-node relation type id
+
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'pmidLists' => $result
+        ]);
+    }
+
+    public function getPMIDListsInRelation(Request $request)
+    {
+        $sql = "select distinct neslr.pmid, sl.title, sl.publication_date from graphs.node_edge_rels ndr join graphs.node_edge_sci_lit_rels neslr on ndr.id = neslr.ne_id join source.sci_lits sl on neslr.pmid = sl.pmid where 1=1 ";
+
+        if ($request->source_node!='')
+            $sql = $sql . " and ndr.source_node = " . $request->source_node; // pass source-node relation
+
+        if ($request->destination_node!='')
+            $sql = $sql . " and ndr.destination_node = " . $request->destination_node; // pass destination-node relation
+
+        if ($request->nnrt_id!='')
+            $sql = $sql . " and ndr.nnrt_id =" . $request->nnrt_id; // pass node select relation
+            
+        if ($request->edge_type_id!='')
+            $sql = $sql . " and ndr.edge_type_id = " . $request->edge_type_id; // pass edge type id
 
         // echo $sql;
         $result = DB::select($sql);
