@@ -363,30 +363,51 @@ class NodeController extends Controller
         $sql = $sql . " nsn.node_id <> ndn.node_id ";
         // $sql = $sql . " AND nsn.name NOT IN ('WAS','IMPACT', 'HR', 'SIT') AND ndn.name NOT IN ('WAS','IMPACT', 'HR', 'SIT')";
 
-        $sourceNode = collect($request->source_node);
-        $sourceNodeImplode = $sourceNode->implode(', ');
-        // echo "heree2: " . $sourceNodeImplode;
-        if (!empty($sourceNodeImplode))
-            $sql = $sql . " AND nsn.node_id in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
-        // }
+        if($request->nnrt_id2 == ""){
+            //For First Level Data Show
+            //1. Node select level 1
+            if ($request->nnrt_id != "") {
+                $sql = $sql . " AND nern.nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
+            }
+            //2. Source Node
+            $sourceNode = collect($request->source_node);
+            $sourceNodeImplode = $sourceNode->implode(', ');       
+            if (!empty($sourceNodeImplode))
+                $sql = $sql . " AND nsn.node_id in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
+            //3. Destination Node
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');       
+            if (!empty($destinationNodeImplode))
+                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            //4. Edge Type
+            $edgeType = collect($request->edge_type_id);
+            $edgeTypeImplode = $edgeType->implode(', ');
+            if (!empty($edgeTypeImplode))
+                $sql = $sql . " AND nern.edge_type_id IN (" . $edgeTypeImplode . ")"; //pass edge_type_id
+        }
+        else
+        {
+            //For Second Level Data Show
+            //1. Node select level 2
+            if ($request->nnrt_id2 != "") {
+                $sql = $sql . " AND nern.nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+            }
+            //2. Source Node2
+            $sourceNode2 = collect($request->source_node2);
+            $sourceNode2Implode = $sourceNode2->implode(', ');       
+            if (!empty($sourceNode2Implode))
+                $sql = $sql . " AND nsn.node_id in (" . $sourceNode2Implode . ")"; // pass node-node relation type id        
 
-        //2. Destination Node
-        $destinationNode = collect($request->destination_node);
-        $destinationNodeImplode = $destinationNode->implode(', ');
-        // echo "heree2: " . $destinationNodeImplode;
-        if (!empty($destinationNodeImplode))
-            $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
-
-        //3. Edge level 1
-        $edgeType = collect($request->edge_type_id);
-        $edgeTypeImplode = $edgeType->implode(', ');
-        // echo "heree3: " . $edgeTypeImplode;
-        if (!empty($edgeTypeImplode))
-            $sql = $sql . " AND nern.edge_type_id IN (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
-
-        //4. Node select level 1
-        if ($request->nnrt_id != "") {
-            $sql = $sql . " AND nern.nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
+            //3. Destination Node2
+            $destinationNode2 = collect($request->destination_node2);
+            $destinationNode2Implode = $destinationNode2->implode(', ');       
+            if (!empty($destinationNode2Implode))
+                $sql = $sql . " AND ndn.node_id in (" . $destinationNode2Implode . ")"; // pass node-node relation type id
+            //4. Edge Type2
+            $edgeType2 = collect($request->edge_type_id2);
+            $edgeType2Implode = $edgeType2->implode(', ');
+            if (!empty($edgeType2Implode))
+                $sql = $sql . " AND nern.edge_type_id IN (" . $edgeType2Implode . ")"; //pass edge_type_id
         }
 
         $sql = $sql . " ) AS source GROUP BY 1,2,3,4,5,6 ORDER BY source.source_node_id ASC ";
