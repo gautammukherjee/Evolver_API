@@ -15,7 +15,7 @@ class ChartController extends Controller
         // $from_date = $year . '-' . $month . '-' . $day;
         //echo $from_date;
 
-        $sql = "SELECT source.edge_group_id, source.Grouped_Edge_Types_Name AS grouped_edge_types_name, COUNT(*) as count
+        $sql = "SELECT source.Temp_Edge_Types_Name AS Temp_Edge_Types_Name, COUNT(*) as count
 		FROM (SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, 
         neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,
         nnrtn.name AS Node_Node_Relation_Types, 
@@ -25,18 +25,17 @@ class ChartController extends Controller
         ndn.name AS Destination_Node_Name,
         ndn.node_id as destination_node_id,	  
         et.name AS Edge_Types_Name,
-	    et.edge_type_id, tet.edge_group_id,
-        tet.name AS Grouped_Edge_Types_Name FROM source.sci_lits as sl 
+	    tet.edge_type_id,
+        tet.group_name AS Temp_Edge_Types_Name FROM source.sci_lits as sl 
         INNER JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid = neslr.pmid
         JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id 
         JOIN graphs.node_node_relation_types AS nnrtn ON nern.nnrt_id = nnrtn.nnrt_id 
         JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id 
         JOIN graphs.node_edge_rels AS ner ON nern.id = ner.id 
         JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id 
-        -- JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
-        -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id 
-        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id 
-        JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id";
+        JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
+        -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id ";
+        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id ";
 
         // $sql = $sql . "Where sl.publication_date > '2017-06-01' AND";
 
@@ -71,7 +70,7 @@ class ChartController extends Controller
         }
 
         $sql = $sql . " ) AS source";
-        $sql = $sql . " GROUP BY 1,2 ORDER BY 3 DESC";
+        $sql = $sql . " GROUP BY 1 ORDER BY 2 DESC";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -84,7 +83,7 @@ class ChartController extends Controller
     public function details_of_association_type(Request $request)
     {
         $sql = "SELECT source.nnrt_id,  
-        source.Node_Node_Relation_Types AS node_node_relation_types,
+        source.Node_Node_Relation_Types AS Node_Node_Relation_Types,
         COUNT(*) AS count
         FROM (SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, 
         neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,
@@ -95,17 +94,16 @@ class ChartController extends Controller
         ndn.name AS Destination_Node_Name,
         ndn.node_id as destination_node_id,	  
         et.name AS Edge_Types_Name,
-        tet.name AS Grouped_Edge_Types_Name FROM source.sci_lits as sl 
+        tet.group_name AS Temp_Edge_Types_Name FROM source.sci_lits as sl 
         INNER JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid = neslr.pmid
         JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id 
         JOIN graphs.node_node_relation_types AS nnrtn ON nern.nnrt_id = nnrtn.nnrt_id 
         JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id 
         JOIN graphs.node_edge_rels AS ner ON nern.id = ner.id 
         JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id 
-        -- JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
-        -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id 
-        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id 
-        JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id";
+        JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
+        -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id ";
+        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id";
 
         $sql = $sql . " Where ";
         // -- sl.publication_date > '2017-06-01 and ' 
@@ -158,7 +156,7 @@ class ChartController extends Controller
         nsn.name AS Source_Node_Name,
         ndn.name AS Destination_Node_Name,
         et.name AS Edge_Types_Name,
-        tet.name AS Grouped_Edge_Types_Name
+        tet.group_name AS Temp_Edge_Types_Name
         FROM source.sci_lits as sl
         JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid = neslr.pmid
         JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id
@@ -166,10 +164,9 @@ class ChartController extends Controller
         JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id
         JOIN graphs.node_edge_rels AS ner ON nern.id = ner.id
         JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id
-        -- JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
+        JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
         -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id
-        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id 
-        JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id Where";
+        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id Where";
 
         //-- sl.publication_date > '2017-06-01' AND
         $sql.=" nsn.node_id <> ndn.node_id ";
