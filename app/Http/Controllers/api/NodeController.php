@@ -210,6 +210,7 @@ class NodeController extends Controller
 
     public function getMasterLists(Request $request)
     {
+        //echo $request->
         // echo $request->source_node;
         // echo "<br/>" . $request->destination_node;
         // echo "<br/>" . $request->nnrt_id;
@@ -330,12 +331,21 @@ class NodeController extends Controller
         $sql = $sql . " group by 1,2,3,4,5,6,10 ) select * from relevant_data rd order by 5";
         // $sql = $sql ." offset 50";
 
-        if (!empty($destinationNodeImplode))
+        /*if (!empty($destinationNodeImplode))
             $sql = $sql . " limit 2000";
         else
             $sql = $sql . " limit 2000";
+        */
 
-        // echo $sql;
+        if ($request->offSetValue != "") {
+            $sql = $sql . " offset " . $request->offSetValue;
+        }
+
+        if ($request->limitValue != "") {
+            $sql = $sql . "limit " . $request->limitValue;
+        }
+
+        //echo $sql;
 
         $result = DB::select($sql);
         return response()->json([
