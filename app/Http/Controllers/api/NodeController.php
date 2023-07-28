@@ -54,9 +54,22 @@ class NodeController extends Controller
         ]);
     }
 
+    public function getEdgeTypeFirst() // First we intialize the edge type first then merge with edge group table
+    {
+        $sql = "select edge_type_id,name as edge_type_name, edge_group_id from graphs.edge_types where deleted=0";
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'edgeTypeFirstRecords' => $result
+        ]);
+    }
     public function getEdgeType()
     {
-        $sql = "select edge_type_id,name as edge_type_name from graphs.edge_types where deleted=0";
+        // $sql = "select e.edge_type_id, e.name as edge_type_name, eg.edge_group_id, eg.name as edge_group_name
+        // from graphs.edge_types as e join graphs.edge_type_group_master as eg 
+        // on e.edge_group_id=eg.edge_group_id
+        // where e.deleted=0";
+        $sql = "select edge_group_id, name as edge_group_name from graphs.edge_type_group_master";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -156,7 +169,6 @@ class NodeController extends Controller
         //1. Source Node 1
         $sourceNode = collect($request->source_node);
         $sourceNodeImplode = $sourceNode->implode(', ');
-        // echo "heree2: " . $sourceNodeImplode;
         if (!empty($sourceNodeImplode))
             $sql = $sql . " and source_node in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
 
@@ -168,8 +180,15 @@ class NodeController extends Controller
             $sql = $sql . " and (n2.name ilike '%$request->searchval%' OR ns2.name ilike '%$request->searchval%')"; //serach with destination node
             // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
         }
+
+        //3. Edge level 1
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        if (!empty($edgeTypeImplode))
+            $sql = $sql . " and edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+
         $sql = $sql . "order by destination_node_name";
-        // echo $sql;
+        echo $sql;
 
         $result = DB::select($sql);
         return response()->json([
