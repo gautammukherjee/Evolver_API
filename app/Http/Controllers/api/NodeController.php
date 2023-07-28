@@ -188,7 +188,7 @@ class NodeController extends Controller
             $sql = $sql . " and edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
 
         $sql = $sql . "order by destination_node_name";
-        echo $sql;
+        // echo $sql;
 
         $result = DB::select($sql);
         return response()->json([
