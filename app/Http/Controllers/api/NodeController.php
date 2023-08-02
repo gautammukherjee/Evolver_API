@@ -79,11 +79,12 @@ class NodeController extends Controller
 
     public function getEdgeTypeName(Request $request)
     {
-        $sql = "select name as edge_type_name from graphs.edge_types ";
+        // $sql = "select name as edge_type_name from graphs.edge_types ";
+        $sql = "select e.edge_type_id, eg.name as edge_type_name from graphs.edge_types as e join graphs.edge_type_group_master as eg on e.edge_group_id=eg.edge_group_id ";
         $edge_type_ids = collect($request->edge_type_ids);
         $edge_type_idsImplode = $edge_type_ids->implode(', ');
         if (!empty($edge_type_idsImplode))
-            $sql = $sql . " where edge_type_id in (" . $edge_type_idsImplode . ")"; // pass node-node relation type id
+            $sql = $sql . " where e.edge_type_id in (" . $edge_type_idsImplode . ")"; // pass node-node relation type id
 
         // echo $sql;
         $result = DB::select($sql);
@@ -188,6 +189,14 @@ class NodeController extends Controller
             $sql = $sql . " and edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
 
         $sql = $sql . "order by destination_node_name";
+
+        if ($request->offSetValue != "") {
+            $sql = $sql . " offset " . $request->offSetValue;
+        }
+
+        if ($request->limitValue != "") {
+            $sql = $sql . "limit " . $request->limitValue;
+        }
         // echo $sql;
 
         $result = DB::select($sql);
@@ -477,8 +486,8 @@ class NodeController extends Controller
         if ($request->destination_node!='')
             $sql = $sql . " and ndr.destination_node = " . $request->destination_node; // pass destination-node relation
 
-        if ($request->nnrt_id!='')
-            $sql = $sql . " and ndr.nnrt_id =" . $request->nnrt_id; // pass node select relation
+        // if ($request->nnrt_id!='')
+        //     $sql = $sql . " and ndr.nnrt_id =" . $request->nnrt_id; // pass node select relation
             
         if ($request->edge_type_id!='')
             $sql = $sql . " and ndr.edge_type_id = " . $request->edge_type_id; // pass edge type id
