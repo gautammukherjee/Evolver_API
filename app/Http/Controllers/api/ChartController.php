@@ -286,6 +286,85 @@ class ChartController extends Controller
 
     }
 
+    public function distribution_by_relation_grp_get_edge_type_drilldown(Request $request)
+    {
+        $sql = "SELECT source.edge_type_id,
+        source.Edge_Types_Name AS edge_types_name,
+        COUNT(*)as count FROM
+        (SELECT sl.pmid AS pmid,
+        sl.publication_date AS publication_date,
+        sl.title AS title,
+        neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,
+        nnrtn.name AS Node_Node_Relation_Types,
+        nnrtn.nnrt_id,
+        nsn.name AS Source_Node_Name,
+        nsn.node_id as source_node_id,
+        ndn.name AS Destination_Node_Name,
+        ndn.node_id as destination_node_id,
+        et.name AS Edge_Types_Name,
+        et.edge_type_id,
+        tet.edge_group_id,
+        tet.name AS Grouped_Edge_Types_Name FROM source.sci_lits as sl 
+        INNER JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid=neslr.pmid JOIN graphs.node_edge_rels 
+        AS nern ON neslr.ne_id=nern.id JOIN graphs.node_node_relation_types AS nnrtn 
+        ON nern.nnrt_id=nnrtn.nnrt_id JOIN graphs.nodes AS nsn ON nern.source_node=nsn.node_id 
+        JOIN graphs.node_edge_rels AS ner ON nern.id=ner.id 
+        JOIN graphs.nodes AS ndn ON nern.destination_node=ndn.node_id
+        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id 
+        JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id 
+        Where nsn.node_id<>ndn.node_id ";
 
+        if($request->nnrt_id2 == ""){
+            //1. Node select level 1
+            if ($request->nnrt_id != "") {
+                $sql = $sql . " AND nern.nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
+            }
+
+            //2. Source Node
+            $sourceNode = collect($request->source_node);
+            $sourceNodeImplode = $sourceNode->implode(', ');
+            if (!empty($sourceNodeImplode))
+                $sql = $sql . " AND nsn.node_id in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
+            // }
+
+            //3. Destination Node
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            if (!empty($destinationNodeImplode))
+                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+        }else{
+            //1. Node select level 2
+            if ($request->nnrt_id2 != "") {
+                $sql = $sql . " AND nern.nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+            }
+
+            //2. Source Node 2
+            $sourceNode2 = collect($request->source_node2);
+            $sourceNode2Implode = $sourceNode2->implode(', ');
+            if (!empty($sourceNode2Implode))
+                $sql = $sql . " AND nsn.node_id in (" . $sourceNode2Implode . ")"; // pass node-node relation type id
+            // }
+
+            //3. Destination Node 2
+            $destinationNode2 = collect($request->destination_node2);
+            $destinationNode2Implode = $destinationNode2->implode(', ');
+            if (!empty($destinationNode2Implode))
+                $sql = $sql . " AND ndn.node_id in (" . $destinationNode2Implode . ")"; // pass node-node relation type id
+        }
+
+         $edgeTypeSel = collect($request->edge_type_id_selected);
+         $edgeTypeSelImplode = $edgeTypeSel->implode(', ');
+         if (!empty($edgeTypeSelImplode))
+             $sql = $sql . " AND nern.edge_type_id in (" . $edgeTypeSelImplode . ")"; //pass edge_type_id for Level 1
+
+        $sql = $sql . " ) AS source";
+        $sql = $sql . " GROUP BY 1,2 ORDER BY 3 DESC";
+        
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'edgeNamesDrillDown' => $result
+        ]);
+    } //distributionByRelationGrp() ends
 
 }

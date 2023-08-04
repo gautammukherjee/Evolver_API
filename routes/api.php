@@ -34,6 +34,7 @@ Route::get('/getEdgeTypeFirst', [NodeController::class, 'getEdgeTypeFirst']);
 
 
 Route::post('/distribution_by_relation_grp', [ChartController::class, 'distributionByRelationGrp']);
+Route::post('/distribution_by_relation_grp_get_edge_type_drilldown', [ChartController::class, 'distribution_by_relation_grp_get_edge_type_drilldown']);
 Route::post('/details_of_association_type', [ChartController::class, 'details_of_association_type']);
 Route::post('/pmid_count_with_gene_disease', [ChartController::class, 'pmid_count_with_gene_disease']);
 
