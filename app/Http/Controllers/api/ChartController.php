@@ -286,7 +286,7 @@ class ChartController extends Controller
 
     }
 
-    public function distribution_by_relation_grp_get_edge_type_drilldown(Request $request)
+    public function distribution_by_relation_grp_get_edge_type_drilldown(Request $request) // only the column drilldown chart when click the column
     {
         $sql = "SELECT source.edge_type_id,
         source.Edge_Types_Name AS edge_types_name,
