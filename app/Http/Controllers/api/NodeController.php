@@ -371,6 +371,8 @@ class NodeController extends Controller
 
         if ($request->limitValue != "") {
             $sql = $sql . "limit " . $request->limitValue;
+        }else{
+            $sql = $sql . " limit 5000";
         }
 
         //echo $sql;
