@@ -47,3 +47,4 @@ Route::post('/getNodeSelects2', [NodeController::class, 'getNodeSelects2']);
 Route::post('/getSourceNode2', [NodeController::class, 'getSourceNode2']);
 Route::post('/getDestinationNode2', [NodeController::class, 'getDestinationNode2']);
 Route::post('/getPMIDListsInRelation', [NodeController::class, 'getPMIDListsInRelation']);
+Route::post('/getEdgePMIDCount', [NodeController::class, 'getEdgePMIDCount']);
