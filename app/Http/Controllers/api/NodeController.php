@@ -372,7 +372,7 @@ class NodeController extends Controller
         if ($request->limitValue != "") {
             $sql = $sql . "limit " . $request->limitValue;
         }else{
-            $sql = $sql . " limit 10";
+            $sql = $sql . " limit 200";
         }
         // $sql = $sql . " limit 5";
 
@@ -472,7 +472,7 @@ class NodeController extends Controller
         if (!empty($ne_idsImplode))
             $sql = $sql . " where neslr.ne_id in (" . $ne_idsImplode . ")"; // pass node-node relation type id
 
-        //echo $sql;
+        // echo $sql;
         $result = DB::select($sql);
         return response()->json([
             'pmidLists' => $result
@@ -504,7 +504,7 @@ class NodeController extends Controller
 
     public function getEdgePMIDCount(Request $request)
     {
-        $sql = "select count(*) as pmid_count "; //-- uncomment for additional pmid specific details along with join part
+        $sql = "select count(distinct neslr.pmid) as pmid_count "; //-- uncomment for additional pmid specific details along with join part
         $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
         $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
 
