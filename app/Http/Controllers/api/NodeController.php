@@ -462,7 +462,7 @@ class NodeController extends Controller
 
     public function getEdgePMIDLists(Request $request)
     {
-        $sql = "select distinct neslr.pmid";
+        $sql = "select distinct neslr.pmid, neslr.ne_id";
         $sql = $sql . " ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
         $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
         $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
@@ -517,6 +517,17 @@ class NodeController extends Controller
         $result = DB::select($sql);
         return response()->json([
             'pmidCount' => $result
+        ]);
+    }
+
+    public function getEvidenceData(Request $request){
+        $ne_id = $request->ne_id;
+        $sql = "select evidence_data from graphs.evidence_metadata_details where ne_id in (".$ne_id.")";
+        //$sql = "select evidence_data from graphs.evidence_metadata_details where ne_id in (208567)";
+        //echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'evidence_data' => $result
         ]);
     }
 }
