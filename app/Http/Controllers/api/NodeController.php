@@ -504,7 +504,7 @@ class NodeController extends Controller
 
     public function getEdgePMIDCount(Request $request)
     {
-        $sql = "select count(distinct neslr.pmid) as pmid_count "; //-- uncomment for additional pmid specific details along with join part
+        $sql = "select count(neslr.pmid) as pmid_count "; //-- uncomment for additional pmid specific details along with join part
         $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
         $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
 
