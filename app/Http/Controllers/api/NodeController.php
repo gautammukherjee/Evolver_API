@@ -522,8 +522,18 @@ class NodeController extends Controller
 
     public function getEvidenceData(Request $request){
         $ne_id = $request->ne_id;
-        $sql = "select evidence_data from graphs.evidence_metadata_details where ne_id in (".$ne_id.")";
+        //$sql = "select evidence_data from graphs.evidence_metadata_details where ne_id in (".$ne_id.")";
         //$sql = "select evidence_data from graphs.evidence_metadata_details where ne_id in (208567)";
+        $sql = "select a.gene_symbol_e1, a.gene_symbol_e2, a.e1_type_name, a.e2_type_name, a.edge_name, a.pubmed_id,
+                b.sentence
+                from 
+                graphs.evidence_metadata_details a, 
+                onto_model_source.relation_extraction_outputs b
+                where 
+                a.ne_id in (".$ne_id.")
+                and 
+                b.rel_extract_id = a.rel_extract_id
+                and a.rel_extract_id!= 1";
         //echo $sql;
         $result = DB::select($sql);
         return response()->json([
