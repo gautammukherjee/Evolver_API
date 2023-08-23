@@ -497,10 +497,18 @@ class NodeController extends Controller
 
     public function getEdgeTypeSentencePMIDLists(Request $request)
     {
-        $sql = "select distinct neslr.pmid, neslr.ne_id";
-        $sql = $sql . " ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
-        $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
-        $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
+        $sql = "select distinct neslr.pmid,
+        neslr.ne_id,
+        sl.title,
+        sl.publication_date,
+        (select et.name as edge_type_name from graphs.node_edge_rels ner join graphs.edge_types et
+        ON ner.edge_type_id=et.edge_type_id where ner.id=neslr.ne_id)
+        as edge_type_name
+        from graphs.node_edge_sci_lit_rels neslr 
+        join source.sci_lits sl on neslr.pmid=sl.pmid ";
+        // $sql = $sql . " ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
+        // $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
+        // $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
 
         $ne_ids = collect($request->ne_ids);
         $ne_idsImplode = $ne_ids->implode(', ');
