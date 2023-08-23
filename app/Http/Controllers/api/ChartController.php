@@ -58,10 +58,17 @@ class ChartController extends Controller
             // }
 
             //3. Destination Node
-            $destinationNode = collect($request->destination_node);
-            $destinationNodeImplode = $destinationNode->implode(', ');
-            if (!empty($destinationNodeImplode))
-                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            // $destinationNode = collect($request->destination_node);
+            // $destinationNodeImplode = $destinationNode->implode(', ');
+            // if (!empty($destinationNodeImplode))
+            //     $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+
+            if($request->destination_node_all != 1){
+                $destinationNode = collect($request->destination_node);
+                $destinationNodeImplode = $destinationNode->implode(', ');
+                if (!empty($destinationNodeImplode))
+                    $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            }
 
             //4. Edge level 1
             $edgeType = collect($request->edge_type_id);
@@ -150,10 +157,17 @@ class ChartController extends Controller
             // }
 
             //3. Destination Node
-            $destinationNode = collect($request->destination_node);
-            $destinationNodeImplode = $destinationNode->implode(', ');
-            if (!empty($destinationNodeImplode))
-                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            // $destinationNode = collect($request->destination_node);
+            // $destinationNodeImplode = $destinationNode->implode(', ');
+            // if (!empty($destinationNodeImplode))
+            //     $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+
+            if($request->destination_node_all != 1){
+                $destinationNode = collect($request->destination_node);
+                $destinationNodeImplode = $destinationNode->implode(', ');
+                if (!empty($destinationNodeImplode))
+                    $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            }
 
             //4. Edge level 1
             $edgeType = collect($request->edge_type_id);
@@ -240,10 +254,17 @@ class ChartController extends Controller
             // }
 
             //3. Destination Node
-            $destinationNode = collect($request->destination_node);
-            $destinationNodeImplode = $destinationNode->implode(', ');
-            if (!empty($destinationNodeImplode))
-                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            // $destinationNode = collect($request->destination_node);
+            // $destinationNodeImplode = $destinationNode->implode(', ');
+            // if (!empty($destinationNodeImplode))
+            //     $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+
+            if($request->destination_node_all != 1){
+                $destinationNode = collect($request->destination_node);
+                $destinationNodeImplode = $destinationNode->implode(', ');
+                if (!empty($destinationNodeImplode))
+                    $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            }
 
             //4. Edge level 1
             $edgeType = collect($request->edge_type_id);
@@ -328,10 +349,18 @@ class ChartController extends Controller
             // }
 
             //3. Destination Node
-            $destinationNode = collect($request->destination_node);
-            $destinationNodeImplode = $destinationNode->implode(', ');
-            if (!empty($destinationNodeImplode))
-                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            // $destinationNode = collect($request->destination_node);
+            // $destinationNodeImplode = $destinationNode->implode(', ');
+            // if (!empty($destinationNodeImplode))
+            //     $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+
+            if($request->destination_node_all != 1){
+                $destinationNode = collect($request->destination_node);
+                $destinationNodeImplode = $destinationNode->implode(', ');
+                if (!empty($destinationNodeImplode))
+                    $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            }
+
         }else{
             //1. Node select level 2
             if ($request->nnrt_id2 != "") {
