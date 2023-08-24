@@ -486,7 +486,7 @@ class NodeController extends Controller
         if (!empty($ne_idsImplode))
             $sql = $sql . " WHERE neslr.ne_id in (" . $ne_idsImplode . ") "; // pass node-node relation type id
 
-        $sql = $sql . "  order by sl.publication_date";
+        $sql = $sql . "  order by sl.publication_date DESC";
 
         // echo $sql;
         $result = DB::select($sql);
