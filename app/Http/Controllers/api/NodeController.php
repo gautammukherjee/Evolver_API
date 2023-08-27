@@ -530,7 +530,7 @@ class NodeController extends Controller
                 graphs.evidence_metadata_details a, 
                 onto_model_source.relation_extraction_outputs b
                 where 
-                a.ne_id in (".$ne_id.")
+                a.ne_id in (208567)
                 and 
                 b.rel_extract_id = a.rel_extract_id
                 and a.rel_extract_id!= 1";
