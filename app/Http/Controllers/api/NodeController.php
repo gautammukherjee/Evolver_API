@@ -128,12 +128,15 @@ class NodeController extends Controller
         if (!empty($sourceNodeImplode))
             $sql = $sql . " and source_node in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
 
+
         //2. Destination Node 1
-        $destinationNode = collect($request->destination_node);
-        $destinationNodeImplode = $destinationNode->implode(', ');
-        // echo "heree2: " . $destinationNodeImplode;
-        if (!empty($destinationNodeImplode))
-            $sql = $sql . " and destination_node in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            // echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode))
+                $sql = $sql . " and destination_node in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+        }
 
         //3. Edge level 1
         $edgeType = collect($request->edge_type_id);
@@ -281,11 +284,13 @@ class NodeController extends Controller
         // }
 
         //2. Destination Node level 1
-        $destinationNode = collect($request->destination_node);
-        $destinationNodeImplode = $destinationNode->implode(', ');
-        // echo "heree2: " . $destinationNodeImplode;
-        if (!empty($destinationNodeImplode))
-            $sql = $sql . " and destination_node in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            // echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode))
+                $sql = $sql . " and destination_node in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+        }
 
         //3. Node select level 1
         if ($request->nnrt_id != "") {
@@ -415,11 +420,20 @@ class NodeController extends Controller
             $sourceNodeImplode = $sourceNode->implode(', ');       
             if (!empty($sourceNodeImplode))
                 $sql = $sql . " AND nsn.node_id in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
+            
             //3. Destination Node
-            $destinationNode = collect($request->destination_node);
-            $destinationNodeImplode = $destinationNode->implode(', ');       
-            if (!empty($destinationNodeImplode))
-                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            if($request->destination_node_all != 1){
+                $destinationNode = collect($request->destination_node);
+                $destinationNodeImplode = $destinationNode->implode(', ');
+                // echo "heree2: " . $destinationNodeImplode;
+                if (!empty($destinationNodeImplode))
+                    $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            }
+            // $destinationNode = collect($request->destination_node);
+            // $destinationNodeImplode = $destinationNode->implode(', ');       
+            // if (!empty($destinationNodeImplode))
+            //     $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+            
             //4. Edge Type
             $edgeType = collect($request->edge_type_id);
             $edgeTypeImplode = $edgeType->implode(', ');
@@ -451,7 +465,7 @@ class NodeController extends Controller
                 $sql = $sql . " AND nern.edge_type_id IN (" . $edgeType2Implode . ")"; //pass edge_type_id
         }
 
-        $sql = $sql . " ) AS source GROUP BY 1,2,3,4,5,6 ORDER BY source.source_node_id ASC ";
+        $sql = $sql . " ) AS source GROUP BY 1,2,3,4,5,6 ORDER BY count desc, source.destination_node_name ASC ";
         // echo $sql;
 
         $result = DB::select($sql);
@@ -462,10 +476,39 @@ class NodeController extends Controller
 
     public function getEdgePMIDLists(Request $request)
     {
-        $sql = "select distinct neslr.pmid, neslr.ne_id";
+        $sql = "select distinct neslr.pmid";
         $sql = $sql . " ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
         $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
-        $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
+        $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid "; //-- uncomment for additional pmid specific details along with  ";
+
+        $ne_ids = collect($request->ne_ids);
+        $ne_idsImplode = $ne_ids->implode(', ');
+        if (!empty($ne_idsImplode))
+            $sql = $sql . " WHERE neslr.ne_id in (" . $ne_idsImplode . ") "; // pass node-node relation type id
+
+        $sql = $sql . "  order by sl.publication_date DESC";
+
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'pmidLists' => $result
+        ]);
+    }
+
+    public function getEdgeTypeSentencePMIDLists(Request $request)
+    {
+        $sql = "select distinct neslr.pmid,
+        neslr.ne_id,
+        sl.title,
+        sl.publication_date,
+        (select et.name as edge_type_name from graphs.node_edge_rels ner join graphs.edge_types et
+        ON ner.edge_type_id=et.edge_type_id where ner.id=neslr.ne_id)
+        as edge_type_name
+        from graphs.node_edge_sci_lit_rels neslr 
+        join source.sci_lits sl on neslr.pmid=sl.pmid ";
+        // $sql = $sql . " ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
+        // $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
+        // $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
 
         $ne_ids = collect($request->ne_ids);
         $ne_idsImplode = $ne_ids->implode(', ');
@@ -475,7 +518,7 @@ class NodeController extends Controller
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
-            'pmidLists' => $result
+            'pmidListsSentence' => $result
         ]);
     }
 
@@ -504,10 +547,8 @@ class NodeController extends Controller
 
     public function getEdgePMIDCount(Request $request)
     {
-        $sql = "select count(neslr.pmid) as pmid_count "; //-- uncomment for additional pmid specific details along with join part
-        $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
-        $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid"; //-- uncomment for additional pmid specific details along with  ";
-
+        // $sql = "select count(distinct neslr.pmid) as pmid_count from graphs.node_edge_sci_lit_rels neslr join source.sci_lits sl on neslr.pmid=sl.pmid  "; //-- uncomment for additional pmid specific details along with join part
+        $sql = "select count(neslr.ne_id) as pmid_count from graphs.node_edge_sci_lit_rels neslr join source.sci_lits sl on neslr.pmid=sl.pmid  "; //-- uncomment for additional pmid specific details along with join part
         $ne_ids = collect($request->edge_type_pmid);
         $ne_idsImplode = $ne_ids->implode(', ');
         if (!empty($ne_idsImplode))
