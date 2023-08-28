@@ -50,3 +50,8 @@ Route::post('/getSourceNode2', [NodeController::class, 'getSourceNode2']);
 Route::post('/getDestinationNode2', [NodeController::class, 'getDestinationNode2']);
 Route::post('/getPMIDListsInRelation', [NodeController::class, 'getPMIDListsInRelation']);
 Route::post('/getEdgePMIDCount', [NodeController::class, 'getEdgePMIDCount']);
+Route::post('/getCTDiseaseAssoc', [NodeController::class, 'getCTDiseaseAssoc']);
+Route::post('/getCTTrialInvestRels', [NodeController::class, 'getCTTrialInvestRels']);
+Route::post('/getCTInvestigatorName', [NodeController::class, 'getCTInvestigatorName']);
+Route::post('/getCTInvestigatorRole', [NodeController::class, 'getCTInvestigatorRole']);
+Route::post('/getCTInvestigatorCountry', [NodeController::class, 'getCTInvestigatorCountry']);
