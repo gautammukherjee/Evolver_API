@@ -55,3 +55,4 @@ Route::post('/getCTTrialInvestRels', [NodeController::class, 'getCTTrialInvestRe
 Route::post('/getCTInvestigatorName', [NodeController::class, 'getCTInvestigatorName']);
 Route::post('/getCTInvestigatorRole', [NodeController::class, 'getCTInvestigatorRole']);
 Route::post('/getCTInvestigatorCountry', [NodeController::class, 'getCTInvestigatorCountry']);
+Route::post('/getCTInvestigatorRelsByStats', [NodeController::class, 'getCTInvestigatorRelsByStats']);
