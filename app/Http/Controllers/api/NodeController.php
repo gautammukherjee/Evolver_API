@@ -476,10 +476,8 @@ class NodeController extends Controller
 
     public function getEdgePMIDLists(Request $request)
     {
-        $sql = "select distinct neslr.pmid";
-        $sql = $sql . " ,sl.title,sl.publication_date"; //-- uncomment for additional pmid specific details along with join part
-        $sql = $sql . " from graphs.node_edge_sci_lit_rels neslr";
-        $sql = $sql . " join source.sci_lits sl on neslr.pmid=sl.pmid "; //-- uncomment for additional pmid specific details along with  ";
+        $sql = "select distinct neslr.pmid,ner.edge_type_id,";
+        $sql = $sql . " (select name from graphs.edge_types WHERE edge_type_id=ner.edge_type_id) as edge_type_name,sl.title,sl.publication_date from graphs.node_edge_sci_lit_rels neslr JOIN graphs.node_edge_rels ner ON neslr.ne_id=ner.id join source.sci_lits sl on neslr.pmid=sl.pmid "; //-- uncomment for additional pmid specific details along with join part
 
         $ne_ids = collect($request->ne_ids);
         $ne_idsImplode = $ne_ids->implode(', ');
@@ -547,8 +545,8 @@ class NodeController extends Controller
 
     public function getEdgePMIDCount(Request $request)
     {
-        // $sql = "select count(distinct neslr.pmid) as pmid_count from graphs.node_edge_sci_lit_rels neslr join source.sci_lits sl on neslr.pmid=sl.pmid  "; //-- uncomment for additional pmid specific details along with join part
-        $sql = "select count(neslr.ne_id) as pmid_count from graphs.node_edge_sci_lit_rels neslr join source.sci_lits sl on neslr.pmid=sl.pmid  "; //-- uncomment for additional pmid specific details along with join part
+        $sql = "select count(distinct neslr.pmid) as pmid_count from graphs.node_edge_sci_lit_rels neslr join source.sci_lits sl on neslr.pmid=sl.pmid  "; //-- uncomment for additional pmid specific details along with join part
+        // $sql = "select count(neslr.ne_id) as pmid_count from graphs.node_edge_sci_lit_rels neslr join source.sci_lits sl on neslr.pmid=sl.pmid  "; //-- uncomment for additional pmid specific details along with join part
         $ne_ids = collect($request->edge_type_pmid);
         $ne_idsImplode = $ne_ids->implode(', ');
         if (!empty($ne_idsImplode))
@@ -581,4 +579,494 @@ class NodeController extends Controller
             'evidence_data' => $result
         ]);
     }
+
+    //1 CT API
+    public function getCTDiseaseAssoc(Request $request)
+    {
+        $sourceNode = collect($request->source_node);
+        $sourceNodeImplode = $sourceNode->implode(', ');  
+
+        $sql2 = "with cte (source_node, destination_node) as (select distinct source_node, destination_node FROM graphs.node_edge_rels WHERE 1=1";
+
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeTypeImplode))
+            $sql2 = $sql2 . " AND edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+    
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            //echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode)){
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeImplode.")"; // pass node-node relation type id
+            }else{
+                $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                if (!empty($destinationNodeAllCTImplode))
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+            }
+        }else{
+            $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+            $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+            if (!empty($destinationNodeAllCTImplode))
+            $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+        }
+        $sql2 = $sql2 . " )";
+
+        if($request->nnrt_id2 == ""){  // For level 1 Check
+            //For First Level Data Show
+            if($request->nnrt_id==2){
+                $sql2 = $sql2 . " select distinct destination_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==3){
+                // $sourceNode = collect($request->source_node);
+                // $sourceNodeImplode = $sourceNode->implode(', ');       
+                // if (!empty($sourceNodeImplode))
+                //     $sql = $sql . " where ctdr.node_id in  (" . $sourceNodeImplode . ")"; // pass node-node relation type id
+
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==4){
+                $sourceNode = collect($request->source_node);
+                $sourceNodeImplode = $sourceNode->implode(', ');       
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte union select distinct destination_node as selected_nodes from cte";
+                // if($request->destination_node_all != 1){
+                //     $destinationNode = collect($request->destination_node);
+                //     $destinationNodeImplode = $destinationNode->implode(', ');
+                //     //echo "heree2: " . $destinationNodeImplode;
+                //     if (!empty($destinationNodeImplode)){
+                //        $destinationNodeImplode = $destinationNodeImplode;
+                //        $sql = $sql . " where ctdr.node_id in (".$sourceNodeImplode.",".$destinationNodeImplode.")";
+                //     }else{
+                //         $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                //         $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                //         $sql = $sql . " where ctdr.node_id in (".$sourceNodeImplode.",".$destinationNodeAllCTImplode.")";
+                //     }                    
+                // }else{
+                //     $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                //     $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                //     $sql = $sql . " where ctdr.node_id in (".$sourceNodeImplode.",".$destinationNodeAllCTImplode.")";
+                // }
+            }
+            // echo $sql2;
+            $result2 = DB::select($sql2);            
+            $diseaseNodes_ids = array();
+            foreach ($result2 as $value) {
+                $diseaseNodes_ids[] = $value->selected_nodes;
+            }
+            $diseaseNodesId = collect($diseaseNodes_ids);
+            $diseaseNodesIdRelevantIds = $diseaseNodesId->implode(', ');       
+
+            if(count($diseaseNodes_ids) > 0){
+                $sql = "select  n.node_id,n.name as disease_name,
+                ct.ct_id,ct.nct_id,ct.org_study_id,ct.secondary_study_id,ct.title,ct.overall_status,pm.phase_id,pm.name as phase_name,
+                ct.has_expanded_access,ct.minimum_age,ct.maximum_age,ct.healthy_volunteers,ct.varification_date,ct.study_first_submitted,
+                ct.study_first_posted,ct.last_update_submitted,ct.last_update_submitted_qc,ct.study_type,ct.gender,ct.study_first_submitted_qc,
+                ct.trial_design,
+                array_agg(ctir.tit_id) as associated_tit_ids,
+                array_agg(ctpr.pmid) as associated_pmids
+                from graphs.clinical_trial_disease_rels ctdr
+                join source.clinical_trial ct on ctdr.ct_id=ct.ct_id
+                join graphs.nodes n on ctdr.node_id=n.node_id
+                join ontology.phase_master pm on ct.phase_id=pm.phase_id
+                left join graphs.clinical_trial_intervention_rels ctir on ctir.ct_id=ct.ct_id
+                left join graphs.clinical_trial_pmid_rels ctpr on ctpr.ct_id=ct.ct_id ";
+                $sql = $sql."where ctdr.node_id in (".$diseaseNodesIdRelevantIds.")";
+                $sql = $sql."group by 1,3,9 limit 100";
+                // echo $sql;
+                $result = DB::select($sql);
+                return response()->json([
+                    'CTDATA' => $result
+                ]);
+            }
+            else{
+                return response()->json([
+                    'CTDATA' => ""
+                ]);
+            }
+        }     
+    }
+
+    //2 ct API
+    public function getCTTrialInvestRels(Request $request)
+    {
+        $sourceNode = collect($request->source_node);
+        $sourceNodeImplode = $sourceNode->implode(', ');  
+
+        $sql2 = "with cte (source_node, destination_node) as (select distinct source_node, destination_node FROM graphs.node_edge_rels WHERE 1=1";
+
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeTypeImplode))
+            $sql2 = $sql2 . " AND edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+    
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            //echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode)){
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeImplode.")"; // pass node-node relation type id
+            }else{
+                $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                if (!empty($destinationNodeAllCTImplode))
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+            }
+        }else{
+            $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+            $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+            if (!empty($destinationNodeAllCTImplode))
+            $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+        }
+        $sql2 = $sql2 . " )";
+
+        if($request->nnrt_id2 == ""){  // For level 1 Check
+            //For First Level Data Show
+            if($request->nnrt_id==2){
+                $sql2 = $sql2 . " select distinct destination_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==3){
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==4){
+                $sourceNode = collect($request->source_node);
+                $sourceNodeImplode = $sourceNode->implode(', ');       
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte union select distinct destination_node as selected_nodes from cte";
+            }
+            // echo $sql2;
+            $result2 = DB::select($sql2);            
+            $diseaseNodes_ids = array();
+            foreach ($result2 as $value) {
+                $diseaseNodes_ids[] = $value->selected_nodes;
+            }
+            $diseaseNodesId = collect($diseaseNodes_ids);
+            $diseaseNodesIdRelevantIds = $diseaseNodesId->implode(', ');       
+
+            if(count($diseaseNodes_ids) > 0){
+                $sql = "with cte (ct_id,node_id,name) as
+                (
+                select ctdr.ct_id,ctdr.node_id,n.name from graphs.clinical_trial_disease_rels ctdr
+                join graphs.nodes n on ctdr.node_id=n.node_id";
+                
+                $sql = $sql." WHERE ctdr.node_id in (".$diseaseNodesIdRelevantIds.")";
+                $sql = $sql. "), reference_data (node_id,disease_name,ct_id,nct_id,investigator_id,investigator_name,affiliation,investigator_role_id,role,country_id,country_name) as (select distinct c.node_id,c.name as disease_name,ct.ct_id,ct.nct_id,im.investigator_id,im.name as investigator_name,im.affiliation,irm.investigator_role_id,irm.name as role,cm.country_id,cm.name as country_name from cte c join source.clinical_trial ct on c.ct_id=ct.ct_id join graphs.clinical_trial_investigator_rels ctirs on ctirs.ct_id=ct.ct_id join graphs.investigator_master im on im.investigator_id=ctirs.investigator_id join graphs.investigator_role_master irm on irm.investigator_role_id=im.investigator_role_id join graphs.country_master cm on ctirs.country_id=cm.country_id) select rd.*,a.pmids from reference_data rd left join lateral (select ctpr.ct_id,array_agg(ctpr.pmid) pmids from graphs.clinical_trial_pmid_rels ctpr where ctpr.ct_id=rd.ct_id group by 1) as a on true ";
+
+                // echo $sql;
+                $result = DB::select($sql);
+                return response()->json([
+                    'CTRelsDATA' => $result
+                ]);
+            }
+            else{
+                return response()->json([
+                    'CTRelsDATA' => ""
+                ]);
+            }
+        }
+        // echo $sql;       
+    }
+
+    //3 ct API Investigator Name
+    public function getCTInvestigatorName(Request $request)
+    {
+        $sourceNode = collect($request->source_node);
+        $sourceNodeImplode = $sourceNode->implode(', ');  
+
+        $sql2 = "with cte (source_node, destination_node) as (select distinct source_node, destination_node FROM graphs.node_edge_rels WHERE 1=1";
+
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeTypeImplode))
+            $sql2 = $sql2 . " AND edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+    
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            //echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode)){
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeImplode.")"; // pass node-node relation type id
+            }else{
+                $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                if (!empty($destinationNodeAllCTImplode))
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+            }
+        }else{
+            $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+            $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+            if (!empty($destinationNodeAllCTImplode))
+            $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+        }
+        $sql2 = $sql2 . " )";
+
+        if($request->nnrt_id2 == ""){  // For level 1 Check
+            //For First Level Data Show
+            if($request->nnrt_id==2){
+                $sql2 = $sql2 . " select distinct destination_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==3){
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==4){
+                $sourceNode = collect($request->source_node);
+                $sourceNodeImplode = $sourceNode->implode(', ');       
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte union select distinct destination_node as selected_nodes from cte";
+            }
+            // echo $sql2;
+            $result2 = DB::select($sql2);            
+            $diseaseNodes_ids = array();
+            foreach ($result2 as $value) {
+                $diseaseNodes_ids[] = $value->selected_nodes;
+            }
+            $diseaseNodesId = collect($diseaseNodes_ids);
+            $diseaseNodesIdRelevantIds = $diseaseNodesId->implode(', ');       
+
+            if(count($diseaseNodes_ids) > 0){
+                $sql = "with cte (ct_id) as (select distinct ctdr.ct_id from graphs.clinical_trial_disease_rels ctdr";                
+                $sql = $sql." WHERE ctdr.node_id in (".$diseaseNodesIdRelevantIds.")";
+                $sql = $sql. "), reference_data (investigator_id,investigator_name,count_nct_ids) as (select im.investigator_id,im.name as investigator_name,count(distinct ctirs.ct_id) from cte c join graphs.clinical_trial_investigator_rels ctirs on ctirs.ct_id=c.ct_id join graphs.investigator_master im on im.investigator_id=ctirs.investigator_id group by 1) select * from reference_data ";
+                // echo $sql;
+                $result = DB::select($sql);
+                return response()->json([
+                    'CTInvestigatorNameDATA' => $result
+                ]);
+            }
+            else{
+                return response()->json([
+                    'CTInvestigatorNameDATA' => ""
+                ]);
+            }
+        }
+        // echo $sql;       
+    }
+
+    //4. API for Tunnel chart in investigation Role
+    public function getCTInvestigatorRole(Request $request)
+    {
+        $sourceNode = collect($request->source_node);
+        $sourceNodeImplode = $sourceNode->implode(', ');  
+
+        $sql2 = "with cte (source_node, destination_node) as (select distinct source_node, destination_node FROM graphs.node_edge_rels WHERE 1=1";
+
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeTypeImplode))
+            $sql2 = $sql2 . " AND edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+    
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            //echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode)){
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeImplode.")"; // pass node-node relation type id
+            }else{
+                $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                if (!empty($destinationNodeAllCTImplode))
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+            }
+        }else{
+            $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+            $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+            if (!empty($destinationNodeAllCTImplode))
+            $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+        }
+        $sql2 = $sql2 . " )";
+
+        if($request->nnrt_id2 == ""){  // For level 1 Check
+            //For First Level Data Show
+            if($request->nnrt_id==2){
+                $sql2 = $sql2 . " select distinct destination_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==3){
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==4){
+                $sourceNode = collect($request->source_node);
+                $sourceNodeImplode = $sourceNode->implode(', ');       
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte union select distinct destination_node as selected_nodes from cte";
+            }
+            // echo $sql2;
+            $result2 = DB::select($sql2);            
+            $diseaseNodes_ids = array();
+            foreach ($result2 as $value) {
+                $diseaseNodes_ids[] = $value->selected_nodes;
+            }
+            $diseaseNodesId = collect($diseaseNodes_ids);
+            $diseaseNodesIdRelevantIds = $diseaseNodesId->implode(', ');       
+
+            if(count($diseaseNodes_ids) > 0){
+                $sql = "with cte (ct_id) as (select distinct ctdr.ct_id from graphs.clinical_trial_disease_rels ctdr ";                
+                $sql = $sql." WHERE ctdr.node_id in (".$diseaseNodesIdRelevantIds.")";
+                $sql = $sql. "),reference_data (investigator_id,investigator_name,count_nct_ids) as (select irm.investigator_role_id,irm.name as role_name,count(distinct ctirs.investigator_id) from cte c join graphs.clinical_trial_investigator_rels ctirs on ctirs.ct_id=c.ct_id join graphs.investigator_master im on im.investigator_id=ctirs.investigator_id join graphs.investigator_role_master irm on im.investigator_role_id=irm.investigator_role_id group by 1) select * from reference_data order by count_nct_ids desc";
+                // echo $sql;
+                $result = DB::select($sql);
+                return response()->json([
+                    'CTInvestigatorRoleDATA' => $result
+                ]);
+            }
+            else{
+                return response()->json([
+                    'CTInvestigatorRoleDATA' => ""
+                ]);
+            }
+        }
+        // echo $sql;       
+    }
+
+    //5. API for Word Map in investigation Country
+    public function getCTInvestigatorCountry(Request $request)
+    {
+        $sourceNode = collect($request->source_node);
+        $sourceNodeImplode = $sourceNode->implode(', ');  
+
+        $sql2 = "with cte (source_node, destination_node) as (select distinct source_node, destination_node FROM graphs.node_edge_rels WHERE 1=1";
+
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeTypeImplode))
+            $sql2 = $sql2 . " AND edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+    
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            //echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode)){
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeImplode.")"; // pass node-node relation type id
+            }else{
+                $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                if (!empty($destinationNodeAllCTImplode))
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+            }
+        }else{
+            $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+            $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+            if (!empty($destinationNodeAllCTImplode))
+            $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+        }
+        $sql2 = $sql2 . " )";
+
+        if($request->nnrt_id2 == ""){  // For level 1 Check
+            //For First Level Data Show
+            if($request->nnrt_id==2){
+                $sql2 = $sql2 . " select distinct destination_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==3){
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==4){
+                $sourceNode = collect($request->source_node);
+                $sourceNodeImplode = $sourceNode->implode(', ');       
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte union select distinct destination_node as selected_nodes from cte";
+            }
+            // echo $sql2;
+            $result2 = DB::select($sql2);            
+            $diseaseNodes_ids = array();
+            foreach ($result2 as $value) {
+                $diseaseNodes_ids[] = $value->selected_nodes;
+            }
+            $diseaseNodesId = collect($diseaseNodes_ids);
+            $diseaseNodesIdRelevantIds = $diseaseNodesId->implode(', ');       
+
+            if(count($diseaseNodes_ids) > 0){
+                $sql = "with cte (ct_id) as (select distinct ctdr.ct_id from graphs.clinical_trial_disease_rels ctdr ";                
+                $sql = $sql." WHERE ctdr.node_id in (".$diseaseNodesIdRelevantIds.")";
+                $sql = $sql. "),reference_data (investigator_id,investigator_name,count_nct_ids) as (select irm.investigator_role_id,irm.name as role_name,count(distinct ctirs.investigator_id) from cte c join graphs.clinical_trial_investigator_rels ctirs on ctirs.ct_id=c.ct_id join graphs.investigator_master im on im.investigator_id=ctirs.investigator_id join graphs.investigator_role_master irm on im.investigator_role_id=irm.investigator_role_id group by 1) select * from reference_data order by count_nct_ids desc";
+                // echo $sql;
+                $result = DB::select($sql);
+                return response()->json([
+                    'CTInvestigatorCountryDATA' => $result
+                ]);
+            }
+            else{
+                return response()->json([
+                    'CTInvestigatorCountryDATA' => ""
+                ]);
+            }
+        }
+        // echo $sql;       
+    }
+
+    //6 ct API Investigator Rels By Stats
+    public function getCTInvestigatorRelsByStats(Request $request)
+    {
+        $sourceNode = collect($request->source_node);
+        $sourceNodeImplode = $sourceNode->implode(', ');  
+
+        $sql2 = "with cte (source_node, destination_node) as (select distinct source_node, destination_node FROM graphs.node_edge_rels WHERE 1=1";
+
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeTypeImplode))
+            $sql2 = $sql2 . " AND edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+    
+        if($request->destination_node_all != 1){
+            $destinationNode = collect($request->destination_node);
+            $destinationNodeImplode = $destinationNode->implode(', ');
+            //echo "heree2: " . $destinationNodeImplode;
+            if (!empty($destinationNodeImplode)){
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeImplode.")"; // pass node-node relation type id
+            }else{
+                $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+                $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+                if (!empty($destinationNodeAllCTImplode))
+                $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+            }
+        }else{
+            $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
+            $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
+            if (!empty($destinationNodeAllCTImplode))
+            $sql2 = $sql2 . " AND source_node in (".$sourceNodeImplode.") and destination_node in (".$destinationNodeAllCTImplode.")"; // pass node-node relation type id
+        }
+        $sql2 = $sql2 . " )";
+
+        if($request->nnrt_id2 == ""){  // For level 1 Check
+            //For First Level Data Show
+            if($request->nnrt_id==2){
+                $sql2 = $sql2 . " select distinct destination_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==3){
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte";
+            }
+            else if($request->nnrt_id==4){
+                $sourceNode = collect($request->source_node);
+                $sourceNodeImplode = $sourceNode->implode(', ');       
+                $sql2 = $sql2 . " select distinct source_node as selected_nodes from cte union select distinct destination_node as selected_nodes from cte";
+            }
+            // echo $sql2;
+            $result2 = DB::select($sql2);            
+            $diseaseNodes_ids = array();
+            foreach ($result2 as $value) {
+                $diseaseNodes_ids[] = $value->selected_nodes;
+            }
+            $diseaseNodesId = collect($diseaseNodes_ids);
+            $diseaseNodesIdRelevantIds = $diseaseNodesId->implode(', ');       
+
+            if(count($diseaseNodes_ids) > 0){
+                $sql = "with cte (ct_id) as (select distinct ctdr.ct_id from graphs.clinical_trial_disease_rels ctdr";                
+                $sql = $sql." WHERE ctdr.node_id in (".$diseaseNodesIdRelevantIds.")";
+                $sql = $sql. "), reference_data (investigator_id,investigator_name,count_nct_ids) as (select im.investigator_id,im.name as investigator_name,count(distinct ctirs.ct_id) from cte c join graphs.clinical_trial_investigator_rels ctirs on ctirs.ct_id=c.ct_id join graphs.investigator_master im on im.investigator_id=ctirs.investigator_id group by 1) select * from reference_data ";
+                // echo $sql;
+                $result = DB::select($sql);
+                return response()->json([
+                    'CTInvestigatorRelsByStatsDATA' => $result
+                ]);
+            }
+            else{
+                return response()->json([
+                    'CTInvestigatorRelsByStatsDATA' => ""
+                ]);
+            }
+        }
+        // echo $sql;       
+    }
+
+
 }
