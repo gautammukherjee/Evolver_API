@@ -468,15 +468,7 @@ class NodeController extends Controller
 
         // -- SEARCH depth FIRST BY sourcenode SET ordercol
         $sql = $sql . " cycle  sourcenode set is_cycle using path,";
-        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_ne_ids,ne_ids,path) as (
-        select source_node,n1.name as source_node_name,destination_node,n2.name as destination_node_name,level,ner.nnrt_id,array_agg(edge_type_id),array_agg(row(edge_type_id,article_type_id,ner.id)) edge_type_article_type_ne_id,
-        array_agg(distinct ner.id),path from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node and ner.nnrt_id=gd.nnrt_id join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id ";
-        // $sql = $sql . " -- where 1=1";
-        $sql = $sql . " group by 1,2,3,4,5,6,10 ) select * from relevant_data rd order by 5";
-
-        if ($request->offSetValue != "") {
-            $sql = $sql . " offset " . $request->offSetValue;
-        }
+        $sql = $sql . " relevant_data (sourcenode,destinationnode,level,nntr_id,edge_type_ids) as (select source_node,destination_node,level,ner.nnrt_id,array_agg(edge_type_id) from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node group by 1,2,3,4 ) select count(1) as total from relevant_data rd";
         // echo $sql;
 
         $result = DB::select($sql);
@@ -1146,9 +1138,9 @@ class NodeController extends Controller
             $diseaseNodesIdRelevantIds = $diseaseNodesId->implode(', ');       
 
             if(count($diseaseNodes_ids) > 0){
-                $sql = "with cte (ct_id) as (select distinct ctdr.ct_id from graphs.clinical_trial_disease_rels ctdr";                
+                $sql = "with cte (ct_id) as (select distinct ctdr.ct_id from graphs.clinical_trial_disease_rels ctdr ";                
                 $sql = $sql." WHERE ctdr.node_id in (".$diseaseNodesIdRelevantIds.")";
-                $sql = $sql. "), reference_data (investigator_id,investigator_name,count_nct_ids) as (select im.investigator_id,im.name as investigator_name,count(distinct ctirs.ct_id) from cte c join graphs.clinical_trial_investigator_rels ctirs on ctirs.ct_id=c.ct_id join graphs.investigator_master im on im.investigator_id=ctirs.investigator_id group by 1) select * from reference_data ";
+                $sql = $sql. "),reference_data (investigator_id,investigator_name,count_nct_ids,count_pm_ids) as (select im.investigator_id,im.name as investigator_name,count(distinct ctirs.ct_id),count(distinct ctpr.pmid) from cte c join graphs.clinical_trial_investigator_rels ctirs on ctirs.ct_id=c.ct_id join graphs.investigator_master im on im.investigator_id=ctirs.investigator_id left join graphs.clinical_trial_pmid_rels ctpr on ctpr.ct_id=ctirs.ct_id group by 1) select * from reference_data ";
                 // echo $sql;
                 $result = DB::select($sql);
                 return response()->json([
