@@ -166,7 +166,7 @@ class NodeController extends Controller
     public function getDestinationNode(Request $request)
     {
         $sql = "select distinct ns2.node_syn_id, ns2.name as syn_node_name, destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
-        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
+        $sql = $sql . " left join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
 
         $sql = $sql . " where 1=1";
 
@@ -394,6 +394,12 @@ class NodeController extends Controller
     {
         $sql = "with recursive graph_data (sourcenode,destinationnode,level,nnrt_id) as (select distinct source_node,destination_node,1 as label,nnrt_id from graphs.node_edge_rels ndr where 1=1";
 
+        // if (!empty($request->node_id)) {
+        //     //1. Node ID
+        //     // echo "heree1: " . $request->node_id;
+        //     $sql = $sql . " and source_node = " . $request->node_id;
+        // } else {
+
         //1. Source Node level 1
         $sourceNodeId = '';
         if (!empty($request->node_id)) {
@@ -436,6 +442,12 @@ class NodeController extends Controller
 
         ///////////////////////// FOR LEVEL 2 START HERE ////////////////////////////////
 
+        //1. Source Node level 2
+        // $sourceNodeId = '';
+        // if (!empty($request->node_id)) {
+        //     $sourceNodeId = ", " . $request->node_id;
+        // }
+
         $sourceNode2 = collect($request->source_node2);
         $sourceNodeImplode2 = $sourceNode2->implode(', ');
         if (!empty($sourceNodeImplode2))
@@ -459,6 +471,13 @@ class NodeController extends Controller
         if (!empty($edgeType2Implode))
             $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 2 and above
 
+        /*
+        and (case when (level+1=2) then ndr.nnrt_id in (2)
+        when (level+1=3) then ndr.nnrt_id in (3) else null end
+        )
+        */
+        // -- keep commented for future reference
+
         //7. level select 1 or 2
         if ($request->nnrt_id2 == "") {
             $sql = $sql . " and level < 1 )"; //-- upto this level keep as it is
@@ -468,8 +487,11 @@ class NodeController extends Controller
 
         // -- SEARCH depth FIRST BY sourcenode SET ordercol
         $sql = $sql . " cycle  sourcenode set is_cycle using path,";
-        $sql = $sql . " relevant_data (sourcenode,destinationnode,level,nntr_id,edge_type_ids) as (select source_node,destination_node,level,ner.nnrt_id,array_agg(edge_type_id) from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node group by 1,2,3,4 ) select count(1) as total from relevant_data rd";
-        // echo $sql;
+        $sql = $sql . " relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids,edge_type_article_type_ne_ids,ne_ids,path) as (
+        select source_node,n1.name as source_node_name,destination_node,n2.name as destination_node_name,level,ner.nnrt_id,array_agg(edge_type_id),array_agg(row(edge_type_id,article_type_id,ner.id)) edge_type_article_type_ne_id,
+        array_agg(distinct ner.id),path from graphs.node_edge_rels ner join graph_data gd on gd.sourcenode=ner.source_node and gd.destinationnode=ner.destination_node and ner.nnrt_id=gd.nnrt_id join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id ";
+        // $sql = $sql . " -- where 1=1";
+        $sql = $sql . " group by 1,2,3,4,5,6,10 ) select count(1) as total from relevant_data rd";
 
         $result = DB::select($sql);
         return response()->json([
