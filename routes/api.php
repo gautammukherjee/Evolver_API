@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\api\UserController;
 use App\Http\Controllers\api\NodeController;
+use App\Http\Controllers\api\NodeRevampController;
 use App\Http\Controllers\api\ChartController;
 
 /*
@@ -57,3 +58,9 @@ Route::post('/getCTInvestigatorName', [NodeController::class, 'getCTInvestigator
 Route::post('/getCTInvestigatorRole', [NodeController::class, 'getCTInvestigatorRole']);
 Route::post('/getCTInvestigatorCountry', [NodeController::class, 'getCTInvestigatorCountry']);
 Route::post('/getCTInvestigatorRelsByStats', [NodeController::class, 'getCTInvestigatorRelsByStats']);
+
+//////////////// For revamp //////////////////////////
+Route::post('/getMasterListsRevampLevelOne', [NodeRevampController::class, 'getMasterListsRevampLevelOne']);
+Route::post('/getMasterListsRevampLevelTwo', [NodeRevampController::class, 'getMasterListsRevampLevelTwo']);
+Route::post('/getMasterListsRevampLevelOneCount', [NodeRevampController::class, 'getMasterListsRevampLevelOneCount']);
+Route::post('/getMasterListsRevampLevelTwoCount', [NodeRevampController::class, 'getMasterListsRevampLevelTwoCount']);
