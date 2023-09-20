@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\api\UserController;
 use App\Http\Controllers\api\NodeController;
+use App\Http\Controllers\api\NodeRevampController;
 use App\Http\Controllers\api\ChartController;
 
 /*
@@ -29,6 +30,10 @@ Route::post('/getSourceNode', [NodeController::class, 'getSourceNode']);
 
 Route::post('/getDestinationNode', [NodeController::class, 'getDestinationNode']);
 Route::post('/getMasterLists', [NodeController::class, 'getMasterLists']);
+Route::post('/getMasterListsRevampLevelOne', [NodeRevampController::class, 'getMasterListsRevampLevelOne']);
+Route::post('/getMasterListsRevampLevelTwo', [NodeRevampController::class, 'getMasterListsRevampLevelTwo']);
+Route::post('/getMasterListsRevampLevelOneCount', [NodeRevampController::class, 'getMasterListsRevampLevelOneCount']);
+Route::post('/getMasterListsRevampLevelTwoCount', [NodeRevampController::class, 'getMasterListsRevampLevelTwoCount']);
 Route::post('/getAllRecords', [NodeController::class, 'getAllRecords']);
 Route::get('/getEdgeType', [NodeController::class, 'getEdgeType']);
 Route::get('/getEdgeTypeFirst', [NodeController::class, 'getEdgeTypeFirst']);
