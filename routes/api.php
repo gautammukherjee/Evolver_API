@@ -36,7 +36,7 @@ Route::get('/getEdgeTypeFirst', [NodeController::class, 'getEdgeTypeFirst']);
 
 
 Route::post('/distribution_by_relation_grp', [ChartController::class, 'distributionByRelationGrp']);
-Route::post('/distribution_by_relation_grp_get_edge_type_drilldown', [ChartController::class, 'distribution_by_relation_grp_get_edge_type_drilldown']);
+// Route::post('/distribution_by_relation_grp_get_edge_type_drilldown', [ChartController::class, 'distribution_by_relation_grp_get_edge_type_drilldown']);
 Route::post('/details_of_association_type', [ChartController::class, 'details_of_association_type']);
 Route::post('/pmid_count_with_gene_disease', [ChartController::class, 'pmid_count_with_gene_disease']);
 
@@ -49,7 +49,7 @@ Route::post('/getEvidenceData', [NodeController::class, 'getEvidenceData']);
 //2 level
 Route::post('/getNodeSelects2', [NodeController::class, 'getNodeSelects2']);
 Route::post('/getSourceNode2', [NodeController::class, 'getSourceNode2']);
-Route::post('/getDestinationNode2', [NodeController::class, 'getDestinationNode2']);
+// Route::post('/getDestinationNode2', [NodeController::class, 'getDestinationNode2']);
 Route::post('/getPMIDListsInRelation', [NodeController::class, 'getPMIDListsInRelation']);
 Route::post('/getEdgePMIDCount', [NodeController::class, 'getEdgePMIDCount']);
 Route::post('/getCTDiseaseAssoc', [NodeController::class, 'getCTDiseaseAssoc']);
@@ -60,7 +60,28 @@ Route::post('/getCTInvestigatorCountry', [NodeController::class, 'getCTInvestiga
 Route::post('/getCTInvestigatorRelsByStats', [NodeController::class, 'getCTInvestigatorRelsByStats']);
 
 //////////////// For revamp //////////////////////////
+// 1. Details Page
 Route::post('/getMasterListsRevampLevelOne', [NodeRevampController::class, 'getMasterListsRevampLevelOne']);
 Route::post('/getMasterListsRevampLevelTwo', [NodeRevampController::class, 'getMasterListsRevampLevelTwo']);
 Route::post('/getMasterListsRevampLevelOneCount', [NodeRevampController::class, 'getMasterListsRevampLevelOneCount']);
 Route::post('/getMasterListsRevampLevelTwoCount', [NodeRevampController::class, 'getMasterListsRevampLevelTwoCount']);
+
+// 2. Network Map Page
+Route::post('/getMasterListsMapRevampLevelOne', [NodeRevampController::class, 'getMasterListsMapRevampLevelOne']);
+Route::post('/getMasterListsMapRevampLevelTwo', [NodeRevampController::class, 'getMasterListsMapRevampLevelTwo']);
+Route::post('/getMasterListsMapRevampLevelOneCount', [NodeRevampController::class, 'getMasterListsMapRevampLevelOneCount']);
+Route::post('/getMasterListsMapRevampLevelTwoCount', [NodeRevampController::class, 'getMasterListsMapRevampLevelTwoCount']);
+
+//3. Visual Charts Page
+Route::post('/pmid_count_gene_disease_revamp_level_one', [NodeRevampController::class, 'pmid_count_gene_disease_revamp_level_one']);
+Route::post('/pmid_count_gene_disease_revamp_level_two', [NodeRevampController::class, 'pmid_count_gene_disease_revamp_level_two']);
+
+Route::post('/distribution_by_relation_grp_level_one', [NodeRevampController::class, 'distributionByRelationGrpLevelOne']);
+Route::post('/distribution_by_relation_grp_level_two', [NodeRevampController::class, 'distributionByRelationGrpLevelTwo']);
+Route::post('/distribution_by_relation_grp_get_edge_type_drilldown_level_one', [NodeRevampController::class, 'distribution_by_relation_grp_get_edge_type_drilldown_level_one']);
+Route::post('/distribution_by_relation_grp_get_edge_type_drilldown_level_two', [NodeRevampController::class, 'distribution_by_relation_grp_get_edge_type_drilldown_level_two']);
+
+//Filter for level2
+Route::post('/getDestinationNode2', [NodeRevampController::class, 'getDestinationNode2']);
+// Route::post('/getSourceNode2', [NodeRevampController::class, 'getSourceNode2']);
+
