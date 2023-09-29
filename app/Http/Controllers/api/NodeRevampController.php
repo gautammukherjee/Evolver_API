@@ -1638,47 +1638,25 @@ class NodeRevampController extends Controller
         ]);
     }
 
-    //Visual Charts for Second Graph
+    ////////////////// ************** Visual Charts for Second Graph *******************////////////////////////
     
     //Level One
     public function pmid_count_gene_disease_revamp_level_one(Request $request)
     {
-        $sql = "SELECT DATE_TRUNC('quarter', CAST(source.publication_date AS timestamp)) AS publication_date,
-        count(distinct source.pmid) AS count
-        FROM
-        (
-        SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,
-        nnrtn.name AS Node_Node_Relation_Types,
-        nsn.name AS Source_Node_Name,
-        ndn.name AS Destination_Node_Name,
-        et.name AS Edge_Types_Name,
-        tet.name AS Grouped_Edge_Types_Name
-        FROM source.sci_lits as sl
-        JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid = neslr.pmid
-        JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id
-        JOIN graphs.node_node_relation_types AS nnrtn ON nern.nnrt_id = nnrtn.nnrt_id
-        JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id
-        JOIN graphs.node_edge_rels AS ner ON nern.id = ner.id
-        JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id
-        -- JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
-        -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id
-        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id 
-        JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id Where";
-
-        //-- sl.publication_date > '2017-06-01' AND
-        $sql.=" nsn.node_id <> ndn.node_id ";
+        $sql = "with  graph_data (publication_date,unique_pmids,label) as(select date_trunc('quarter', sl.publication_date) as month_start,count(distinct neslr.pmid) as pmids,1 as label"; //-- change 1 with 2 for level 2 and 3 for level 3 like this
+        $sql = $sql . " from graphs.node_edge_rels ndr join graphs.node_edge_sci_lit_rels neslr on ndr.id=neslr.ne_id join source.sci_lits sl on neslr.pmid=sl.pmid where 1=1";
 
         //Check the node level and pass the parameter        
         //1. Node select level 1
         if ($request->nnrt_id != "") {
-            $sql = $sql . " AND nern.nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
+            $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
         }
 
         //2. Source Node
         $sourceNode = collect($request->source_node);
         $sourceNodeImplode = $sourceNode->implode(', ');
         if (!empty($sourceNodeImplode))
-            $sql = $sql . " AND nsn.node_id in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
+            $sql = $sql . " and source_node in (" . $sourceNodeImplode . ")"; // pass node-node relation type id
         // }
 
         //3. Destination Node
@@ -1686,16 +1664,17 @@ class NodeRevampController extends Controller
             $destinationNode = collect($request->destination_node);
             $destinationNodeImplode = $destinationNode->implode(', ');
             if (!empty($destinationNodeImplode))
-                $sql = $sql . " AND ndn.node_id in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
+                $sql = $sql . " and destination_node in (" . $destinationNodeImplode . ")"; // pass node-node relation type id
         }
+        $sql = $sql . " and source_node<>destination_node ";
 
         //4. Edge level 1
         $edgeType = collect($request->edge_type_id);
         $edgeTypeImplode = $edgeType->implode(', ');
         if (!empty($edgeTypeImplode))
-        $sql = $sql . " AND nern.edge_type_id IN (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
+        $sql = $sql . " and edge_type_id IN (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1
 
-        $sql .= ") AS source GROUP BY DATE_TRUNC('quarter', CAST(source.publication_date AS timestamp)) ORDER BY DATE_TRUNC('quarter', CAST(source.publication_date AS timestamp)) ASC";
+        $sql = $sql . " group by 1,3) select * from graph_data";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -1706,42 +1685,20 @@ class NodeRevampController extends Controller
     //Level Two
     public function pmid_count_gene_disease_revamp_level_two(Request $request)
     {
-        $sql = "SELECT DATE_TRUNC('quarter', CAST(source.publication_date AS timestamp)) AS publication_date,
-        count(distinct source.pmid) AS count
-        FROM
-        (
-        SELECT sl.pmid AS pmid, sl.publication_date AS publication_date, sl.title AS title, neslr.pmid AS Node_Edge_Sci_Lit_Rels_pmid,
-        nnrtn.name AS Node_Node_Relation_Types,
-        nsn.name AS Source_Node_Name,
-        ndn.name AS Destination_Node_Name,
-        et.name AS Edge_Types_Name,
-        tet.name AS Grouped_Edge_Types_Name
-        FROM source.sci_lits as sl
-        JOIN graphs.node_edge_sci_lit_rels AS neslr ON sl.pmid = neslr.pmid
-        JOIN graphs.node_edge_rels AS nern ON neslr.ne_id = nern.id
-        JOIN graphs.node_node_relation_types AS nnrtn ON nern.nnrt_id = nnrtn.nnrt_id
-        JOIN graphs.nodes AS nsn ON nern.source_node = nsn.node_id
-        JOIN graphs.node_edge_rels AS ner ON nern.id = ner.id
-        JOIN graphs.nodes AS ndn ON nern.destination_node = ndn.node_id
-        -- JOIN graphs.edge_types AS et ON nern.edge_type_id = et.edge_type_id
-        -- LEFT JOIN graphs.temp_edge_type_group AS tet ON tet.edge_type_id = nern.edge_type_id
-        JOIN graphs.edge_types et on et.edge_type_id=nern.edge_type_id 
-        JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id Where";
-
-        //-- sl.publication_date > '2017-06-01' AND
-        $sql.=" nsn.node_id <> ndn.node_id ";
+        $sql = "with  graph_data (publication_date,unique_pmids,label) as(select date_trunc('quarter', sl.publication_date) as month_start,count(distinct neslr.pmid) as pmids,2 as label"; //-- change 1 with 2 for level 2 and 3 for level 3 like this
+        $sql = $sql . " from graphs.node_edge_rels ndr join graphs.node_edge_sci_lit_rels neslr on ndr.id=neslr.ne_id join source.sci_lits sl on neslr.pmid=sl.pmid where 1=1";
 
         //Check the node level and pass the parameter        
         //1. Node select level 2
         if ($request->nnrt_id2 != "") {
-            $sql = $sql . " AND nern.nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+            $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
         }
 
         //2. Source Node 2
         $sourceNode2 = collect($request->source_node2);
         $sourceNode2Implode = $sourceNode2->implode(', ');
         if (!empty($sourceNode2Implode))
-            $sql = $sql . " AND nsn.node_id in (" . $sourceNode2Implode . ")"; // pass node-node relation type id
+            $sql = $sql . " and source_node in (" . $sourceNode2Implode . ")"; // pass node-node relation type id
         // }
 
         //3. Destination Node 2
@@ -1749,15 +1706,17 @@ class NodeRevampController extends Controller
             $destinationNode2 = collect($request->destination_node2);
             $destinationNode2Implode = $destinationNode2->implode(', ');
             if (!empty($destinationNode2Implode))
-                $sql = $sql . " AND ndn.node_id in (" . $destinationNode2Implode . ")"; // pass node-node relation type id
+                $sql = $sql . " and destination_node in (" . $destinationNode2Implode . ")"; // pass node-node relation type id
         }
+        $sql = $sql . " and source_node<>destination_node ";
+
         //4. Edge level 2
         $edgeType2 = collect($request->edge_type_id2);
         $edgeType2Implode = $edgeType2->implode(', ');
         if (!empty($edgeType2Implode))
-            $sql = $sql . " AND nern.edge_type_id IN (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 1
-        
-        $sql .= ") AS source GROUP BY DATE_TRUNC('quarter', CAST(source.publication_date AS timestamp)) ORDER BY DATE_TRUNC('quarter', CAST(source.publication_date AS timestamp)) ASC";
+            $sql = $sql . " and edge_type_id IN (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 1
+
+        $sql = $sql . " group by 1,3) select * from graph_data";
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
