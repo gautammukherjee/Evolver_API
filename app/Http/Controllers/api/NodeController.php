@@ -705,6 +705,10 @@ class NodeController extends Controller
         ]);
     }
 
+    public function downloadAtricleAndEvidencesData(Request $request){
+        
+    }
+
     //1 CT API
     public function getCTDiseaseAssoc(Request $request)
     {
