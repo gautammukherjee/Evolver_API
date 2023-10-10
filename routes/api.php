@@ -46,6 +46,8 @@ Route::post('/getEdgeTypeSentencePMIDLists', [NodeController::class, 'getEdgeTyp
 Route::post('/getDistributionRelationType', [NodeController::class, 'getDistributionRelationType']);
 Route::post('/getEvidenceData', [NodeController::class, 'getEvidenceData']);
 
+Route::post('/downloadAtricleAndEvidencesData', [NodeController::class, 'downloadAtricleAndEvidencesData']);
+
 //2 level
 Route::post('/getNodeSelects2', [NodeController::class, 'getNodeSelects2']);
 Route::post('/getSourceNode2', [NodeController::class, 'getSourceNode2']);
