@@ -121,10 +121,10 @@ class NodeRevampController extends Controller
         $sql = "select distinct ns1.node_syn_id,ns1.name as syn_node_name,ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id left join graphs.node_syns ns1 on n1.node_id=ns1.node_id ";
         $sql = $sql . " where 1=1 ";
 
-        if ($request->nnrt_id != "") {
-            $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
-        }        
-        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+        // if ($request->nnrt_id != "") {
+        //     $sql = $sql . " and nnrt_id = " . $request->nnrt_id; // pass node-node relation type id
+        // }        
+        // $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
 
         $destinationNodeAllCT = collect($request->destination_node_all_for_ct);
         $destinationNodeAllCTImplode = $destinationNodeAllCT->implode(', ');
@@ -153,7 +153,7 @@ class NodeRevampController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node ";
 
-        echo $sql;
+        // echo $sql;
         $result = DB::select($sql);
         return response()->json([
             'sourceNodeRecords2' => $result
@@ -1426,6 +1426,111 @@ class NodeRevampController extends Controller
             'masterListsData' => $result
         ]);
     }
+
+    public function getMasterListsRevampLevelThree(Request $request)
+    {
+        $sql = "with  graph_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nnrt_id,edge_type_ids,ne_ids,pmids) as (select source_node,n1.name,destination_node,n2.name,3 as label, ";//-- change 1 with 2 for level 2 and 3 for level 3 like this 
+        $sql = $sql. " nnrt_id,array_agg(distinct edge_type_id),array_agg(distinct ndr.id),count(distinct pmid) from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id join graphs.nodes n2 on ndr.destination_node=n2.node_id join lateral (select neslr.pmid from graphs.node_edge_sci_lit_rels neslr where neslr.ne_id=ndr.id) as a on true where 1=1 ";
+
+        $sourceNodeId = '';
+        if (!empty($request->node_id)) {
+            $sourceNodeId = ", " . $request->node_id;
+        }
+        
+        //1. Source Node level 3
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNodeImplode3 = $sourceNode3->implode(', ');
+        if (!empty($sourceNodeImplode3))
+            $sql = $sql . " and source_node in (" . $sourceNodeImplode3 . $sourceNodeId.")"; // pass source node level 3
+
+        //2. Destination Node level 3
+        if($request->destination_node_all3 != 1){
+        $destinationNode3 = collect($request->destination_node3);
+        $destinationNodeImplode3 = $destinationNode3->implode(', ');
+        if (!empty($destinationNodeImplode3))
+            $sql = $sql . " and destination_node in (" . $destinationNodeImplode3 . ")"; // pass destination node level 3       
+        }
+
+        //3. Node select level 3
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and ndr.nnrt_id = " . $request->nnrt_id3; // -- For Level 3 nntr selection (and above)
+        }
+
+        $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
+
+        //4. Edge level 3
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 3 and above
+
+        $sql = $sql ." group by 1,2,3,4,5,6) select * from graph_data";
+       
+        if ($request->offSetValue != "") {
+            $sql = $sql . " offset " . $request->offSetValue;
+        }
+        if ($request->limitValue != "") {
+            $sql = $sql . "limit " . $request->limitValue;
+        }
+        // echo $sql;
+
+        $result = DB::select($sql);
+        return response()->json([
+            'masterListsData' => $result
+        ]);
+    }
+
+    public function getMasterListsRevampLevelThreeCount(Request $request)
+    {
+        $sql = "with  graph_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nnrt_id,edge_type_ids,ne_ids,pmids) as (select source_node,n1.name,destination_node,n2.name,3 as label, ";//-- change 1 with 2 for level 2 and 3 for level 3 like this 
+        $sql = $sql. " nnrt_id,array_agg(distinct edge_type_id),array_agg(distinct ndr.id),count(distinct pmid) from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id join graphs.nodes n2 on ndr.destination_node=n2.node_id join lateral (select neslr.pmid from graphs.node_edge_sci_lit_rels neslr where neslr.ne_id=ndr.id) as a on true where 1=1 ";
+
+        $sourceNodeId = '';
+        if (!empty($request->node_id)) {
+            $sourceNodeId = ", " . $request->node_id;
+        }
+        
+        //1. Source Node level 3
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNodeImplode3 = $sourceNode3->implode(', ');
+        if (!empty($sourceNodeImplode3))
+            $sql = $sql . " and source_node in (" . $sourceNodeImplode3 . $sourceNodeId.")"; // pass source node level 3 
+
+        //2. Destination Node level 3
+        if($request->destination_node_all3 != 1){
+            $destinationNode3 = collect($request->destination_node3);
+            $destinationNodeImplode3 = $destinationNode3->implode(', ');
+            if (!empty($destinationNodeImplode3))
+                $sql = $sql . " and destination_node in (" . $destinationNodeImplode3 . ")"; // pass destination node level 3
+        }
+
+        //3. Node select level 3
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and ndr.nnrt_id = " . $request->nnrt_id3; // -- For Level 3 nntr selection (and above)
+        }
+
+        $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
+
+        //4. Edge level 2
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 3 and above
+
+        $sql = $sql ." group by 1,2,3,4,5,6) select count(*) as count from graph_data";
+       
+        if ($request->offSetValue != "") {
+            $sql = $sql . " offset " . $request->offSetValue;
+        }
+        if ($request->limitValue != "") {
+            $sql = $sql . "limit " . $request->limitValue;
+        }
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'masterListsData' => $result
+        ]);
+    }
     //End details page
 
     //2. Network Map Page
@@ -1638,6 +1743,108 @@ class NodeRevampController extends Controller
         ]);
     }
 
+    public function getMasterListsMapRevampLevelThree(Request $request)
+    {
+        $sql = "with  graph_data (sourcenode,destinationnode,level,nnrt_id,edge_type_id,ne_id) as (select distinct source_node,destination_node,3 as label ";//-- change 1 with 2 for level 2 and 3 for level 3 like this 
+        $sql = $sql. " ,nnrt_id,edge_type_id,ndr.id from graphs.node_edge_rels ndr where 1=1 ";
+
+        $sourceNodeId = '';
+        if (!empty($request->node_id)) {
+            $sourceNodeId = ", " . $request->node_id;
+        }
+        
+        //1. Source Node level 3
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNodeImplode3 = $sourceNode3->implode(', ');
+        if (!empty($sourceNodeImplode3))
+            $sql = $sql . " and source_node in (" . $sourceNodeImplode3 . $sourceNodeId.")"; // pass source node level 3 
+
+        //2. Destination Node level3
+        if($request->destination_node_all3 != 1){
+            $destinationNode3 = collect($request->destination_node3);
+            $destinationNodeImplode3 = $destinationNode3->implode(', ');
+            if (!empty($destinationNodeImplode3))
+                $sql = $sql . " and destination_node in (" . $destinationNodeImplode3 . ")"; // pass destination node level 3       
+        }
+
+        //3. Node select level 3
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and ndr.nnrt_id = " . $request->nnrt_id3; // -- For Level 3 nntr selection (and above)
+        }
+
+        $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
+
+        //4. Edge level 3
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 3 and above
+
+        $sql = $sql ." ),relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids) as (select gd.sourcenode,n1.name as source_node_name,gd.destinationnode,n2.name as destination_node_name,level,nnrt_id,array_agg(edge_type_id),array_agg(ne_id) as ne_ids from graph_data gd join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id group by 1,2,3,4,5,6) select * from relevant_data rd";
+       
+        // if ($request->offSetValue != "") {
+        //     $sql = $sql . " offset " . $request->offSetValue;
+        // }
+        if ($request->limitValue != 0) {
+            $sql = $sql . " limit " . ((1000) + $request->limitValue);
+        }else{
+            $sql = $sql . " limit 1000 ";
+        }
+        // echo $sql;
+
+        $result = DB::select($sql);
+        return response()->json([
+            'masterListsData' => $result
+        ]);
+    }
+
+    public function getMasterListsMapRevampLevelThreeCount(Request $request)
+    {
+        $sql = "with  graph_data (sourcenode,destinationnode,level,nnrt_id,edge_type_id,ne_id) as (select distinct source_node,destination_node,3 as label ";//-- change 1 with 2 for level 2 and 3 for level 3 like this 
+        $sql = $sql. " ,nnrt_id,edge_type_id,ndr.id from graphs.node_edge_rels ndr where 1=1 ";
+
+        $sourceNodeId = '';
+        if (!empty($request->node_id)) {
+            $sourceNodeId = ", " . $request->node_id;
+        }
+        
+        //1. Source Node level 3
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNodeImplode3 = $sourceNode3->implode(', ');
+        if (!empty($sourceNodeImplode3))
+            $sql = $sql . " and source_node in (" . $sourceNodeImplode3 . $sourceNodeId.")"; // pass source node level 2 
+
+        //2. Destination Node level3
+        if($request->destination_node_all3 != 1){
+            $destinationNode3 = collect($request->destination_node3);
+            $destinationNodeImplode3 = $destinationNode3->implode(', ');
+            if (!empty($destinationNodeImplode3))
+                $sql = $sql . " and destination_node in (" . $destinationNodeImplode3 . ")"; // pass destination node level 2
+        }
+
+        //3. Node select level 3
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and ndr.nnrt_id = " . $request->nnrt_id3; // -- For Level 3 nntr selection (and above)
+        }
+
+        $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
+
+        //4. Edge level 3
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 3 and above
+
+        $sql = $sql ." ),relevant_data (sourcenode,sourcenode_name,destinationnode,destinationnode_name,level,nntr_id,edge_type_ids) as (select gd.sourcenode,n1.name as source_node_name,gd.destinationnode,n2.name as destination_node_name,level,nnrt_id,array_agg(edge_type_id),array_agg(ne_id) as ne_ids from graph_data gd join graphs.nodes n1 on gd.sourcenode=n1.node_id join graphs.nodes n2 on gd.destinationnode=n2.node_id group by 1,2,3,4,5,6) select count(*) as count from relevant_data rd";
+        // echo $sql;
+
+        $result = DB::select($sql);
+        return response()->json([
+            'masterListsData' => $result
+        ]);
+    }
+
     ////////////////// ************** Visual Charts for Second Graph *******************////////////////////////
     
     //Level One
@@ -1721,6 +1928,48 @@ class NodeRevampController extends Controller
         $result = DB::select($sql);
         return response()->json([
             'nodeSelectsRecords2' => $result
+        ]);
+    }
+
+    //Level Three
+    public function pmid_count_gene_disease_revamp_level_three(Request $request)
+    {
+        $sql = "with  graph_data (publication_date,unique_pmids,label) as(select date_trunc('quarter', sl.publication_date) as month_start,count(distinct neslr.pmid) as pmids,3 as label"; //-- change 1 with 2 for level 2 and 3 for level 3 like this
+        $sql = $sql . " from graphs.node_edge_rels ndr join graphs.node_edge_sci_lit_rels neslr on ndr.id=neslr.ne_id join source.sci_lits sl on neslr.pmid=sl.pmid where 1=1";
+
+        //Check the node level and pass the parameter        
+        //1. Node select level 3
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+        }
+
+        //2. Source Node 3
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNode3Implode = $sourceNode3->implode(', ');
+        if (!empty($sourceNode3Implode))
+            $sql = $sql . " and source_node in (" . $sourceNode3Implode . ")"; // pass node-node relation type id
+        // }
+
+        //3. Destination Node 3
+        if($request->destination_node_all3 != 1){
+            $destinationNode3 = collect($request->destination_node3);
+            $destinationNode3Implode = $destinationNode3->implode(', ');
+            if (!empty($destinationNode3Implode))
+                $sql = $sql . " and destination_node in (" . $destinationNode3Implode . ")"; // pass node-node relation type id
+        }
+        $sql = $sql . " and source_node<>destination_node ";
+
+        //4. Edge level 3
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and edge_type_id IN (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 3
+
+        $sql = $sql . " group by 1,3) select * from graph_data";
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'nodeSelectsRecords3' => $result
         ]);
     }
 
@@ -1809,6 +2058,48 @@ class NodeRevampController extends Controller
 
     } //distributionByRelationGrp() ends
 
+    //Level Three
+    public function distributionByRelationGrpLevelThree(Request $request)
+    {
+        $sql = "with  graph_data (edge_group_id,grouped_edge_types_name,label,pmids) as (select tet.edge_group_id,tet.name as edge_group_name,3 as label "; //-- change 1 with 2 for level 2 and 3 for level 3 like this
+        $sql = $sql . ", count(1) as total from graphs.node_edge_rels ndr JOIN graphs.edge_types et on et.edge_type_id=ndr.edge_type_id JOIN graphs.edge_type_group_master tet on tet.edge_group_id=et.edge_group_id JOIN graphs.node_edge_sci_lit_rels neslr on ndr.id=neslr.ne_id ";
+        // $sql = $sql . "join source.sci_lits sl on neslr.pmid=sl.pmid";
+        $sql = $sql . "where 1=1 ";
+
+        //1. Node select level 3
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and ndr.nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+        }
+        //2. Source Node 3
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNode3Implode = $sourceNode3->implode(', ');
+        if (!empty($sourceNode3Implode))
+            $sql = $sql . " and source_node in (" . $sourceNode3Implode . ")"; // pass node-node relation type id        
+
+        //3. Destination Node 3
+        if($request->destination_node_all3 != 1){
+            $destinationNode3 = collect($request->destination_node3);
+            $destinationNode3Implode = $destinationNode3->implode(', ');
+            if (!empty($destinationNode3Implode))
+                $sql = $sql . " and destination_node in (" . $destinationNode3Implode . ")"; // pass node-node relation type id
+        }
+        $sql = $sql . " and source_node<>destination_node ";
+
+        //4. Edge level 3
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and ndr.edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 1
+        
+        $sql = $sql . " group by 1,3 order by 4 desc) select * from graph_data";
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'nodeSelectsRecords3' => $result
+        ]);
+
+    } //distributionByRelationGrp() ends
+
     public function distribution_by_relation_grp_get_edge_type_drilldown_level_one(Request $request) // only the column drilldown chart when click the column
     {
         $sql = "with  graph_data (edge_type_id,edge_types_name,label,pmids) as (select et.edge_type_id,et.name as edge_types_name,1 as label"; //-- change 1 with 2 for level 2 and 3 for level 3 like this
@@ -1836,11 +2127,11 @@ class NodeRevampController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
 
-        //4. edge type id
+        //4. edge type selected id
         $edgeTypeSel = collect($request->edge_type_id_selected);
         $edgeTypeSelImplode = $edgeTypeSel->implode(', ');
         if (!empty($edgeTypeSelImplode))
-            $sql = $sql . " and ndr.edge_type_id in (" . $edgeTypeSelImplode . ")"; //pass edge_type_id for Level 1
+            $sql = $sql . " and ndr.edge_type_id in (" . $edgeTypeSelImplode . ")"; //pass edge_type_id
 
         $sql = $sql . " group by 1,3 order by 4 desc) select * from graph_data";
         // echo $sql;
@@ -1878,11 +2169,11 @@ class NodeRevampController extends Controller
         }
         $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
 
-        //4. edge type id 2
+        //4. edge type selected id
         $edgeTypeSel = collect($request->edge_type_id_selected);
         $edgeTypeSelImplode = $edgeTypeSel->implode(', ');
         if (!empty($edgeTypeSelImplode))
-            $sql = $sql . " and ndr.edge_type_id in (" . $edgeTypeSelImplode . ")"; //pass edge_type_id for Level 1
+            $sql = $sql . " and ndr.edge_type_id in (" . $edgeTypeSelImplode . ")"; //pass edge_type_id
 
         $sql = $sql . " group by 1,3 order by 4 desc) select * from graph_data";
         
@@ -1892,4 +2183,145 @@ class NodeRevampController extends Controller
             'edgeNamesDrillDown2' => $result
         ]);
     } //distributionByRelationGrp() ends
+    
+    public function distribution_by_relation_grp_get_edge_type_drilldown_level_three(Request $request) // only the column drilldown chart when click the column
+    {
+        $sql = "with  graph_data (edge_type_id,edge_types_name,label,pmids) as (select et.edge_type_id,et.name as edge_types_name,3 as label"; //-- change 1 with 2 for level 2 and 3 for level 3 like this
+        $sql = $sql . ", count(1) as total from graphs.node_edge_rels ndr JOIN graphs.edge_types et on et.edge_type_id=ndr.edge_type_id JOIN graphs.node_edge_sci_lit_rels neslr on ndr.id=neslr.ne_id";
+        // $sql = $sql . "-- join source.sci_lits sl on neslr.pmid=sl.pmid";
+       
+        //1. Node select level 3
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and ndr.nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+        }
+
+        //2. Source Node 3
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNode3Implode = $sourceNode3->implode(', ');
+        if (!empty($sourceNode3Implode))
+            $sql = $sql . " and source_node in (" . $sourceNode3Implode . ")"; // pass node-node relation type id
+        // }
+
+        //3. Destination Node 3
+        if($request->destination_node_all3 != 1){
+            $destinationNode3 = collect($request->destination_node3);
+            $destinationNode3Implode = $destinationNode3->implode(', ');
+            if (!empty($destinationNode3Implode))
+                $sql = $sql . " and destination_node in (" . $destinationNode3Implode . ")"; // pass node-node relation type id
+        }
+        $sql = $sql . " and source_node<>destination_node"; //-- same node can't connect with itself
+
+        //4. edge type selected id
+        $edgeTypeSel = collect($request->edge_type_id_selected);
+        $edgeTypeSelImplode = $edgeTypeSel->implode(', ');
+        if (!empty($edgeTypeSelImplode))
+            $sql = $sql . " and ndr.edge_type_id in (" . $edgeTypeSelImplode . ")"; //pass edge_type_id
+
+        $sql = $sql . " group by 1,3 order by 4 desc) select * from graph_data";
+        
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'edgeNamesDrillDown3' => $result
+        ]);
+    } //distributionByRelationGrp() ends
+
+    //////// ****************** For Filter3 ****************///////////////////
+    public function getNodeSelects3(Request $request)
+    {
+        $sql = "select nnrt_id,name as pair_name from graphs.node_node_relation_types where deleted=0";
+        if ($request->nnrt_id2 != "") {
+            $sql = $sql . " and nnrt_id not in (" . $request->nnrt_id.",".$request->nnrt_id2.")"; // pass node-node relation type id
+        }
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'nodeSelectsRecords' => $result
+        ]);
+    }
+
+    public function getSourceNode3(Request $request)
+    {
+        $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id join graphs.nodes n2 on ndr.destination_node=n2.node_id where 1=1 and source_node in ";
+        $sql = $sql . " (select distinct destination_node from graphs.node_edge_rels ndr where 1=1 ";
+
+        //1. Source Node 2
+        $sourceNode2 = collect($request->source_node2);
+        $sourceNode2Implode = $sourceNode2->implode(', ');
+        // echo "heree2: " . $sourceNode2Implode;
+        if (!empty($sourceNode2Implode))
+            $sql = $sql . " and source_node in (" . $sourceNode2Implode . ")"; // pass node-node relation type id
+
+        //2. Destination Node 2
+        if($request->destination_node_all2 != 1){
+            $destinationNode2 = collect($request->destination_node2);
+            $destinationNode2Implode = $destinationNode2->implode(', ');
+            // echo "heree2: " . $destinationNode2Implode;
+            if (!empty($destinationNode2Implode))
+                $sql = $sql . " and destination_node in (" . $destinationNode2Implode . ")"; // pass node-node relation type id
+        }
+
+        //3. Edge level 2
+        $edgeType2 = collect($request->edge_type_id2);
+        $edgeType2Implode = $edgeType2->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeType2Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 1
+
+        // if ($request->nnrt_id2 != "") {
+        //     $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+        // }
+        // $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+        $sql = $sql . " ) ";
+
+        if ($request->nnrt_id3 != "" && $request->nnrt_id3 != "undefined") {
+            $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+        }
+        $sql = $sql . " and source_node<>destination_node ";
+
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'sourceNodeRecords3' => $result
+        ]);
+    }
+
+    public function getDestinationNode3(Request $request)
+    {
+        $sql = "select distinct ns2.node_syn_id, ns2.name as syn_node_name, destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
+        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
+
+        $sql = $sql . " where 1=1";
+
+        //1. Source Node 1
+        $sourceNode3 = collect($request->source_node3);
+        $sourceNodeImplode3 = $sourceNode3->implode(', ');
+        // echo "heree2: " . $sourceNodeImplode;
+        if (!empty($sourceNodeImplode3))
+            $sql = $sql . " and source_node in (" . $sourceNodeImplode3 . ")"; // pass node-node relation type id
+
+        if ($request->nnrt_id3 != "") {
+            $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+        }
+        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+        if ($request->searchval != "") {
+            $sql = $sql . " and (n2.name ilike '$request->searchval%' OR ns2.name ilike '$request->searchval%')"; //serach with destination node
+            // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
+        }
+        //3. Edge level 2
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 2 and above
+
+        $sql = $sql . "order by destination_node_name";
+        // echo $sql;
+
+        $result = DB::select($sql);
+        return response()->json([
+            'destinationNodeRecords3' => $result
+        ]);
+    }
+
 }
