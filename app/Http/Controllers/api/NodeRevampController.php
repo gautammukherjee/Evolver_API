@@ -2268,10 +2268,10 @@ class NodeRevampController extends Controller
         if (!empty($edgeType2Implode))
             $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 1
 
-        // if ($request->nnrt_id2 != "") {
-        //     $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
-        // }
-        // $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+        if ($request->nnrt_id2 != "") {
+            $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+        }
+        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
         $sql = $sql . " ) ";
 
         if ($request->nnrt_id3 != "" && $request->nnrt_id3 != "undefined") {
