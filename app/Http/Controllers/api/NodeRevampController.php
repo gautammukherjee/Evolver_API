@@ -2366,7 +2366,8 @@ class NodeRevampController extends Controller
 
     public function getEdgeTypeSce1(Request $request)
     {
-        $sql = "select edge_type_id,name as edge_type_name, edge_group_id from graphs.edge_types where deleted=0 ";
+        $sql = "select distinct etm.name as edge_type_name from graphs.edge_types et
+        join graphs.edge_type_group_master etm on et.edge_group_id=etm.edge_group_id ";
         $edgeType = collect($request->edge_type_id);
         $edgeTypeImplode = $edgeType->implode(', ');
         // echo "heree3: " . $edgeTypeImplode;
@@ -2382,7 +2383,8 @@ class NodeRevampController extends Controller
 
     public function getEdgeTypeSce2(Request $request)
     {
-        $sql = "select edge_type_id,name as edge_type_name, edge_group_id from graphs.edge_types where deleted=0 ";
+        $sql = "select distinct etm.name as edge_type_name from graphs.edge_types et
+        join graphs.edge_type_group_master etm on et.edge_group_id=etm.edge_group_id ";
         $edgeType2 = collect($request->edge_type_id2);
         $edgeType2Implode = $edgeType2->implode(', ');
         // echo "heree3: " . $edgeTypeImplode;
@@ -2398,7 +2400,8 @@ class NodeRevampController extends Controller
 
     public function getEdgeTypeSce3(Request $request)
     {
-        $sql = "select edge_type_id,name as edge_type_name, edge_group_id from graphs.edge_types where deleted=0 ";
+        $sql = "select distinct etm.name as edge_type_name from graphs.edge_types et
+        join graphs.edge_type_group_master etm on et.edge_group_id=etm.edge_group_id ";
         $edgeType3 = collect($request->edge_type_id3);
         $edgeType3Implode = $edgeType3->implode(', ');
         // echo "heree3: " . $edgeTypeImplode;
