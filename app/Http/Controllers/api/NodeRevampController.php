@@ -207,34 +207,46 @@ class NodeRevampController extends Controller
 
     public function getDestinationNode2(Request $request)
     {
-        $sql = "select distinct ns2.node_syn_id, ns2.name as syn_node_name, destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
-        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
+        if ($request->cameFromScenario == 1) { // if the came from scenario
+            $sql = "select node_id, name as destination_node_name from graphs.nodes where 1=1 ";
+            $destinationNode2 = collect($request->destination_node2);
+            $destinationNode2Implode = $destinationNode2->implode(', ');
+            // echo "heree2: " . $sourceNodeImplode;
+            if (!empty($destinationNode2Implode))
+                $sql = $sql . " and node_id in (" . $destinationNode2Implode . ")";
 
-        $sql = $sql . " where 1=1";
-
-        //1. Source Node 1
-        $sourceNode2 = collect($request->source_node2);
-        $sourceNodeImplode2 = $sourceNode2->implode(', ');
-        // echo "heree2: " . $sourceNodeImplode;
-        if (!empty($sourceNodeImplode2))
-            $sql = $sql . " and source_node in (" . $sourceNodeImplode2 . ")"; // pass node-node relation type id
-
-        if ($request->nnrt_id2 != "") {
-            $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
         }
-        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
-        if ($request->searchval != "") {
-            $sql = $sql . " and (n2.name ilike '$request->searchval%' OR ns2.name ilike '$request->searchval%')"; //serach with destination node
-            // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
-        }
-        //3. Edge level 2
-        $edgeType2 = collect($request->edge_type_id2);
-        $edgeType2Implode = $edgeType2->implode(', ');
-        // echo "heree3: " . $edgeTypeImplode;
-        if (!empty($edgeType2Implode))
-            $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 2 and above
+        else
+        {
+            $sql = "select distinct ns2.node_syn_id, ns2.name as syn_node_name, destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
+            $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
 
-        $sql = $sql . "order by destination_node_name";
+            $sql = $sql . " where 1=1";
+
+            //1. Source Node 1
+            $sourceNode2 = collect($request->source_node2);
+            $sourceNodeImplode2 = $sourceNode2->implode(', ');
+            // echo "heree2: " . $sourceNodeImplode;
+            if (!empty($sourceNodeImplode2))
+                $sql = $sql . " and source_node in (" . $sourceNodeImplode2 . ")"; // pass node-node relation type id
+
+            if ($request->nnrt_id2 != "") {
+                $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+            }
+            $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+            if ($request->searchval != "") {
+                $sql = $sql . " and (n2.name ilike '$request->searchval%' OR ns2.name ilike '$request->searchval%')"; //serach with destination node
+                // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
+            }
+            //3. Edge level 2
+            $edgeType2 = collect($request->edge_type_id2);
+            $edgeType2Implode = $edgeType2->implode(', ');
+            // echo "heree3: " . $edgeTypeImplode;
+            if (!empty($edgeType2Implode))
+                $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 2 and above
+
+            $sql = $sql . "order by destination_node_name";
+        }
         // echo $sql;
 
         $result = DB::select($sql);
@@ -2230,8 +2242,14 @@ class NodeRevampController extends Controller
     public function getNodeSelects3(Request $request)
     {
         $sql = "select nnrt_id,name as pair_name from graphs.node_node_relation_types where deleted=0";
-        if ($request->nnrt_id2 != "") {
-            $sql = $sql . " and nnrt_id not in (" . $request->nnrt_id.",".$request->nnrt_id2.")"; // pass node-node relation type id
+        if ($request->cameFromScenario == 1) {
+            if ($request->nnrt_id3 != "") {
+                $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+            }
+        }else{
+            if ($request->nnrt_id2 != "") {
+                $sql = $sql . " and nnrt_id not in (" . $request->nnrt_id.",".$request->nnrt_id2.")"; // pass node-node relation type id
+            }
         }
         // echo $sql;
         $result = DB::select($sql);
@@ -2242,43 +2260,53 @@ class NodeRevampController extends Controller
 
     public function getSourceNode3(Request $request)
     {
-        $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id join graphs.nodes n2 on ndr.destination_node=n2.node_id where 1=1 and source_node in ";
-        $sql = $sql . " (select distinct destination_node from graphs.node_edge_rels ndr where 1=1 ";
-
-        //1. Source Node 2
-        $sourceNode2 = collect($request->source_node2);
-        $sourceNode2Implode = $sourceNode2->implode(', ');
-        // echo "heree2: " . $sourceNode2Implode;
-        if (!empty($sourceNode2Implode))
-            $sql = $sql . " and source_node in (" . $sourceNode2Implode . ")"; // pass node-node relation type id
-
-        //2. Destination Node 2
-        if($request->destination_node_all2 != 1){
-            $destinationNode2 = collect($request->destination_node2);
-            $destinationNode2Implode = $destinationNode2->implode(', ');
-            // echo "heree2: " . $destinationNode2Implode;
-            if (!empty($destinationNode2Implode))
-                $sql = $sql . " and destination_node in (" . $destinationNode2Implode . ")"; // pass node-node relation type id
+        if ($request->cameFromScenario == 1) { // if the came from scenario
+            $sql = "select node_id, name as source_node_name from graphs.nodes where 1=1 ";
+            $sourceNode3 = collect($request->source_node3);
+            $sourceNode3Implode = $sourceNode3->implode(', ');
+            // echo "heree2: " . $sourceNodeImplode;
+            if (!empty($sourceNode3Implode))
+                $sql = $sql . " and node_id in (" . $sourceNode3Implode . ")";
         }
+        else
+        {
+            $sql = "select distinct ndr.source_node,n1.name as source_node_name from graphs.node_edge_rels ndr join graphs.nodes n1 on ndr.source_node=n1.node_id join graphs.nodes n2 on ndr.destination_node=n2.node_id where 1=1 and source_node in ";
+            $sql = $sql . " (select distinct destination_node from graphs.node_edge_rels ndr where 1=1 ";
 
-        //3. Edge level 2
-        $edgeType2 = collect($request->edge_type_id2);
-        $edgeType2Implode = $edgeType2->implode(', ');
-        // echo "heree3: " . $edgeTypeImplode;
-        if (!empty($edgeType2Implode))
-            $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 1
+            //1. Source Node 2
+            $sourceNode2 = collect($request->source_node2);
+            $sourceNode2Implode = $sourceNode2->implode(', ');
+            // echo "heree2: " . $sourceNode2Implode;
+            if (!empty($sourceNode2Implode))
+                $sql = $sql . " and source_node in (" . $sourceNode2Implode . ")"; // pass node-node relation type id
 
-        if ($request->nnrt_id2 != "") {
-            $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+            //2. Destination Node 2
+            if($request->destination_node_all2 != 1){
+                $destinationNode2 = collect($request->destination_node2);
+                $destinationNode2Implode = $destinationNode2->implode(', ');
+                // echo "heree2: " . $destinationNode2Implode;
+                if (!empty($destinationNode2Implode))
+                    $sql = $sql . " and destination_node in (" . $destinationNode2Implode . ")"; // pass node-node relation type id
+            }
+
+            //3. Edge level 2
+            $edgeType2 = collect($request->edge_type_id2);
+            $edgeType2Implode = $edgeType2->implode(', ');
+            // echo "heree3: " . $edgeTypeImplode;
+            if (!empty($edgeType2Implode))
+                $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 1
+
+            if ($request->nnrt_id2 != "") {
+                $sql = $sql . " and nnrt_id = " . $request->nnrt_id2; // pass node-node relation type id
+            }
+            $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+            $sql = $sql . " ) ";
+
+            if ($request->nnrt_id3 != "" && $request->nnrt_id3 != "undefined") {
+                $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+            }
+            $sql = $sql . " and source_node<>destination_node ";
         }
-        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
-        $sql = $sql . " ) ";
-
-        if ($request->nnrt_id3 != "" && $request->nnrt_id3 != "undefined") {
-            $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
-        }
-        $sql = $sql . " and source_node<>destination_node ";
-
         // echo $sql;
         $result = DB::select($sql);
         return response()->json([
@@ -2288,39 +2316,102 @@ class NodeRevampController extends Controller
 
     public function getDestinationNode3(Request $request)
     {
-        $sql = "select distinct ns2.node_syn_id, ns2.name as syn_node_name, destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
-        $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
+        if ($request->cameFromScenario == 1) { // if the came from scenario
+            $sql = "select node_id, name as destination_node_name from graphs.nodes where 1=1 ";
+            $destinationNode3 = collect($request->destination_node3);
+            $destinationNode3Implode = $destinationNode3->implode(', ');
+            // echo "heree2: " . $sourceNodeImplode;
+            if (!empty($destinationNode3Implode))
+                $sql = $sql . " and node_id in (" . $destinationNode3Implode . ")";
 
-        $sql = $sql . " where 1=1";
-
-        //1. Source Node 1
-        $sourceNode3 = collect($request->source_node3);
-        $sourceNodeImplode3 = $sourceNode3->implode(', ');
-        // echo "heree2: " . $sourceNodeImplode;
-        if (!empty($sourceNodeImplode3))
-            $sql = $sql . " and source_node in (" . $sourceNodeImplode3 . ")"; // pass node-node relation type id
-
-        if ($request->nnrt_id3 != "") {
-            $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
         }
-        $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
-        if ($request->searchval != "") {
-            $sql = $sql . " and (n2.name ilike '$request->searchval%' OR ns2.name ilike '$request->searchval%')"; //serach with destination node
-            // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
-        }
-        //3. Edge level 2
-        $edgeType3 = collect($request->edge_type_id3);
-        $edgeType3Implode = $edgeType3->implode(', ');
-        // echo "heree3: " . $edgeTypeImplode;
-        if (!empty($edgeType3Implode))
-            $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 2 and above
+        else
+        {
+            $sql = "select distinct ns2.node_syn_id, ns2.name as syn_node_name, destination_node,n2.name as destination_node_name from graphs.node_edge_rels ndr join graphs.nodes n2 on ndr.destination_node=n2.node_id ";
+            $sql = $sql . " join graphs.node_syns ns2 on n2.node_id=ns2.node_id"; //(Uncomment when destination_node_synonym name searched)";
 
-        $sql = $sql . "order by destination_node_name";
-        // echo $sql;
+            $sql = $sql . " where 1=1";
+
+            //1. Source Node 1
+            $sourceNode3 = collect($request->source_node3);
+            $sourceNodeImplode3 = $sourceNode3->implode(', ');
+            // echo "heree2: " . $sourceNodeImplode;
+            if (!empty($sourceNodeImplode3))
+                $sql = $sql . " and source_node in (" . $sourceNodeImplode3 . ")"; // pass node-node relation type id
+
+            if ($request->nnrt_id3 != "") {
+                $sql = $sql . " and nnrt_id = " . $request->nnrt_id3; // pass node-node relation type id
+            }
+            $sql = $sql . " and source_node<>destination_node "; //same node can't connect with itself";
+            if ($request->searchval != "") {
+                $sql = $sql . " and (n2.name ilike '$request->searchval%' OR ns2.name ilike '$request->searchval%')"; //serach with destination node
+                // $sql = $sql . " and ns2.name ilike '%$request->searchval%' "; // search with synonym destination node
+            }
+            //3. Edge level 2
+            $edgeType3 = collect($request->edge_type_id3);
+            $edgeType3Implode = $edgeType3->implode(', ');
+            // echo "heree3: " . $edgeTypeImplode;
+            if (!empty($edgeType3Implode))
+                $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 2 and above
+
+            $sql = $sql . "order by destination_node_name";
+            // echo $sql;
+        }
 
         $result = DB::select($sql);
         return response()->json([
             'destinationNodeRecords3' => $result
+        ]);
+    }
+
+    public function getEdgeTypeSce1(Request $request)
+    {
+        $sql = "select distinct etm.name as edge_type_name from graphs.edge_types et
+        join graphs.edge_type_group_master etm on et.edge_group_id=etm.edge_group_id ";
+        $edgeType = collect($request->edge_type_id);
+        $edgeTypeImplode = $edgeType->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeTypeImplode))
+            $sql = $sql . " and edge_type_id in (" . $edgeTypeImplode . ")"; //pass edge_type_id for Level 1 and above
+
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'edgeTypeRecords1' => $result
+        ]);
+    }
+
+    public function getEdgeTypeSce2(Request $request)
+    {
+        $sql = "select distinct etm.name as edge_type_name from graphs.edge_types et
+        join graphs.edge_type_group_master etm on et.edge_group_id=etm.edge_group_id ";
+        $edgeType2 = collect($request->edge_type_id2);
+        $edgeType2Implode = $edgeType2->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeType2Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType2Implode . ")"; //pass edge_type_id for Level 2 and above
+
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'edgeTypeRecords2' => $result
+        ]);
+    }
+
+    public function getEdgeTypeSce3(Request $request)
+    {
+        $sql = "select distinct etm.name as edge_type_name from graphs.edge_types et
+        join graphs.edge_type_group_master etm on et.edge_group_id=etm.edge_group_id ";
+        $edgeType3 = collect($request->edge_type_id3);
+        $edgeType3Implode = $edgeType3->implode(', ');
+        // echo "heree3: " . $edgeTypeImplode;
+        if (!empty($edgeType3Implode))
+            $sql = $sql . " and edge_type_id in (" . $edgeType3Implode . ")"; //pass edge_type_id for Level 3 and above
+
+        // echo $sql;
+        $result = DB::select($sql);
+        return response()->json([
+            'edgeTypeRecords3' => $result
         ]);
     }
 

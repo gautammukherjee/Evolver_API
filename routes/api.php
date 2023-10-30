@@ -6,6 +6,7 @@ use App\Http\Controllers\api\UserController;
 use App\Http\Controllers\api\NodeController;
 use App\Http\Controllers\api\NodeRevampController;
 use App\Http\Controllers\api\ChartController;
+use App\Http\Controllers\api\ScenarioController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,7 +26,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/login', [UserController::class, 'login']);
 // Route::post('/login','App\Http\Controllers\api\UserController@login');
 
-Route::get('/getNodeSelects', [NodeController::class, 'getNodeSelects']);
+Route::post('/getNodeSelects', [NodeController::class, 'getNodeSelects']);
 Route::post('/getSourceNode', [NodeController::class, 'getSourceNode']);
 
 Route::post('/getDestinationNode', [NodeController::class, 'getDestinationNode']);
@@ -98,3 +99,14 @@ Route::post('/getDestinationNode2', [NodeRevampController::class, 'getDestinatio
 Route::post('/getNodeSelects3', [NodeRevampController::class, 'getNodeSelects3']);
 Route::post('/getSourceNode3', [NodeRevampController::class, 'getSourceNode3']);
 Route::post('/getDestinationNode3', [NodeRevampController::class, 'getDestinationNode3']);
+
+
+//Save Scenario in details page
+Route::post('/getPerUserScenarios', [ScenarioController::class, 'getPerUserScenarios']);
+Route::post('/addUserScenario', [ScenarioController::class, 'addUserScenario']);
+Route::post('/getUserScenarios', [ScenarioController::class, 'getUserScenarios']);
+Route::post('/delUserScenario', [ScenarioController::class, 'delUserScenario']);
+
+Route::post('/getEdgeTypeSce1', [NodeRevampController::class, 'getEdgeTypeSce1']);
+Route::post('/getEdgeTypeSce2', [NodeRevampController::class, 'getEdgeTypeSce2']);
+Route::post('/getEdgeTypeSce3', [NodeRevampController::class, 'getEdgeTypeSce3']);
