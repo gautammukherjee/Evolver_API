@@ -741,18 +741,20 @@ class NodeController extends Controller
 
     public function getEvidenceData(Request $request){
         $ne_id = $request->ne_id;
+        $pubmed_id = $request->pubmed_id;
         //$sql = "select evidence_data from graphs.evidence_metadata_details where ne_id in (208567)";
-        $sql = "select a.gene_symbol_e1, a.gene_symbol_e2, a.e1_type_name, a.e2_type_name, a.edge_name, a.pubmed_id,
+        $sql = "select distinct a.gene_symbol_e1, a.gene_symbol_e2, a.e1_type_name, a.e2_type_name, a.edge_name, a.pubmed_id,
                 b.sentence
                 from 
                 graphs.evidence_metadata_details a, 
                 onto_model_source.relation_extraction_outputs b
                 where 
                 a.ne_id in (".$ne_id.")
+                and a.pubmed_id in (".$pubmed_id.")
                 and 
                 b.rel_extract_id = a.rel_extract_id";
                 //"and a.rel_extract_id!= 1" 
-        //echo $sql;
+        // echo $sql;
         $result = DB::select($sql);
         return response()->json([
             'evidence_data' => $result
@@ -762,28 +764,94 @@ class NodeController extends Controller
     // Upload Articles and Evidence data
     //SQL for testing
     public function downloadAtricleAndEvidencesData(Request $request){
-        //echo "<pre>"; print_r($request->data); echo "</pre>";
-        for($i=0; $i<count($request->data); $i++){
-            $ne_ids = $request->data[$i]['ne_id'].",";
-        }
-        $ne_ids = trim($ne_ids,",");
-        //echo 'ne_ids = '.$ne_ids;
+        // echo "<pre>"; print_r($request); echo "</pre>";
 
-        //$ne_id = $request->data;
-        $sql = "select a.gene_symbol_e1, a.gene_symbol_e2, a.e1_type_name, a.e2_type_name, a.edge_name, a.pubmed_id,
-                b.sentence
-                from 
-                graphs.evidence_metadata_details a, 
-                onto_model_source.relation_extraction_outputs b
-                where 
-                a.ne_id in (".$ne_ids.")
-                and 
-                b.rel_extract_id = a.rel_extract_id";  
-        //echo $sql;     
+        $scenario = $request;
+        //Get the sentences count
+        $count = count($scenario['result_data_set']);
+        // echo $count;
+
+        $csvFileName = $scenario->filter1_name.".csv";
+        $path = storage_path('app/public/'.$scenario->user_id['user_id']);
+        // $path = storage_path('app/public/');            
+        $file = fopen($path.$csvFileName, 'w');
+
+        ////////////////////// For Article //////////////////////////////////
+        $columns = array('Source', 'Destination', 'PUBMED','Publication Date','Title','ne_id','edge_type');
+
+        fputcsv($file, $columns);
+        foreach ($scenario['result_data_set'] as $product) {
+            $row['source']  = $product['source'];
+            $row['destination']  = $product['destination'];
+            $row['pubmed_id']  = $product['pubmed_id'];
+            $row['publication_date']  = $product['publication_date'];
+            $row['title']  = $product['title'];
+            $row['ne_id']  = $product['ne_id'];
+            $row['edge_type']  = $product['edge_type'];
+
+            fputcsv($file, array($row['source'], $row['destination'], $row['pubmed_id'], $row['publication_date'], $row['title'], $row['ne_id'], $row['edge_type']));
+        }
+
+        //////////////////////////// For Sentences /////////////////////////////
+        $sql = "select distinct a.rel_extract_id, a.gene_symbol_e1,a.gene_symbol_e2,a.e1_type_name,a.e2_type_name,a.edge_name,a.pubmed_id,b.sentence from graphs.evidence_metadata_details a,onto_model_source.relation_extraction_outputs b ";
+        $sql = $sql . " Where (";
+        $i=1;
+        foreach ($scenario['result_data_set'] as $product) {            
+            $sql = $sql." (a.ne_id = ".$product['ne_id']." and a.pubmed_id = ".$product['pubmed_id'].") ";
+            if($i < $count)
+                $sql = $sql." or ";
+            $i++;
+        }
+        $sql = $sql . " ) and b.rel_extract_id=a.rel_extract_id";
+        // echo $sql;
         $result = DB::select($sql);
-        return response()->json([
+
+        $columnsSentences = array('Gene Symbol E1', 'Type', 'Gene Symbol E2','PMID','Title');
+        fputcsv($file, $columnsSentences);
+        foreach ($result as $producte) {
+            echo "Product: ".$producte->gene_symbol_e1; 
+            $row['gene_symbol_e1']  = $producte->gene_symbol_e1;
+            $row['e1_type_name']  = $producte->e1_type_name;
+            $row['gene_symbol_e2']  = $producte->gene_symbol_e2;
+            $row['e2_type_name']  = $producte->e2_type_name;
+            $row['edge_name']  = $producte->edge_name;
+            $row['pubmed_id']  = $producte->pubmed_id;
+            $row['sentence']  = $producte->sentence;            
+
+            fputcsv($file, array($row['gene_symbol_e1']."(".$row['e1_type_name'].")", $row['edge_name'],  $row['gene_symbol_e2']."(".$row['e2_type_name'].")", "PMID: ".$row['pubmed_id'], $row['sentence']));
+        }
+        //End hete for Sentences
+
+        $newData = response()->json([
             'data' => $result
         ]);
+
+        fclose($file);
+        // Excel::store($products, $csvFileName, 'public');
+        // $filePath = Storage::url("storage/{$csvFileName}");
+        // $path = storage_path($filePath);
+
+        // for($i=0; $i<count($request->articles); $i++){
+        //     $ne_ids = $request->articles[$i]['ne_id'].",";
+        // }
+        // $ne_ids = trim($ne_ids,",");
+        // echo 'ne_ids = '.$ne_ids;
+
+        // $ne_id = $request->data;
+        // $sql = "select a.gene_symbol_e1, a.gene_symbol_e2, a.e1_type_name, a.e2_type_name, a.edge_name, a.pubmed_id,
+        //         b.sentence
+        //         from 
+        //         graphs.evidence_metadata_details a, 
+        //         onto_model_source.relation_extraction_outputs b
+        //         where 
+        //         a.ne_id in (".$ne_ids.")
+        //         and 
+        //         b.rel_extract_id = a.rel_extract_id";  
+        // // echo $sql;     
+        // $result = DB::select($sql);
+        // return response()->json([
+        //     'data' => $result
+        // ]);
     }
 
     //1 CT API

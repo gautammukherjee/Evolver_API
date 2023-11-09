@@ -81,6 +81,7 @@ class ScenarioController extends Controller
         {
             // $product_new = json_encode($scenario['result_data_set']);
             // $products = json_decode($product_new, true);            
+            
             $csvFileName = $scenario->filter_name.".csv";
             $path = storage_path('app/public/'.$scenario->user_id['user_id']);
             // $path = storage_path('app/public/');            
@@ -127,7 +128,7 @@ class ScenarioController extends Controller
         }       
     }
 
-    //Add Scenario
+    //Update Scenario
     public function updateUserScenario(Request $request){            
         $scenario = $request;
         $fileUrl = $scenario->fileName;
@@ -193,20 +194,19 @@ class ScenarioController extends Controller
         $sql = "select s.uploaded_file_url FROM scenarios as s WHERE s.id = ".$scenarioID." and s.user_id =".$userId;        
         $result = DB::connection('pgsql2')->select($sql);        
         
-        $uploaded_file_url = "";
+        // $uploaded_file_url = "";
         if (count($result) > 0) {
             foreach ($result as $value) {
                 $uploaded_file_url = $value->uploaded_file_url;
             }
         }
+        // echo "url: ".$uploaded_file_url;
 
-        // $path = storage_path('app/public/'.$scenario->user_id['user_id']);
-        if(Storage::disk('s3')->exists($uploaded_file_url)) {
-            Storage::disk('s3')->delete($uploaded_file_url);
-        }
+        $s3_filename = basename($uploaded_file_url);
+        Storage::disk('s3')->delete($s3_filename);
         //End to delete the file from S3 bucket
 
-        // $sql = "UPDATE scenarios set deleted = 1 where id=" . $scenarioID . " and user_id =".$userId;
+        $sql = "UPDATE scenarios set deleted = 1 where id=" . $scenarioID . " and user_id =".$userId;
         $sql = "DELETE FROM scenarios where id=" . $scenarioID . " and user_id =".$userId;
         // echo $sql;
         $result = DB::connection('pgsql2')->select($sql);
