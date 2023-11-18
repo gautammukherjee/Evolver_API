@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class NodeController extends Controller
 {
@@ -767,91 +768,234 @@ class NodeController extends Controller
         // echo "<pre>"; print_r($request); echo "</pre>";
 
         $scenario = $request;
-        //Get the sentences count
-        $count = count($scenario['result_data_set']);
-        // echo $count;
+        // print($scenario);
+        if($scenario->filter1_name){
+            ////////////////////**************** */ Start INSERT the data into table **************/////////////////////////
+            $count = count($scenario['result_data_set']);
+            // echo $count;
+            $sql = "INSERT INTO article_sentences_dashboard (user_id,name,description, resultset) 
+            values ('".$scenario->user_id['user_id']."','".$scenario->filter1_name."','".$scenario->user1_comments."','".json_encode(($scenario['result_data_set']))."')";
+            // echo $sql;
+            
+            $result = DB::connection('pgsql2')->select($sql);
+            $lastId = DB::connection('pgsql2')->getPdo()->lastInsertId(); // get the last inserted id
 
-        $csvFileName = $scenario->filter1_name.".csv";
-        $path = storage_path('app/public/'.$scenario->user_id['user_id']);
-        // $path = storage_path('app/public/');            
-        $file = fopen($path.$csvFileName, 'w');
+            //Start Result set is also stored in the excel format            
+            $csvFileName = $scenario->filter1_name.".csv";
+            $path = storage_path('app/public/'.$scenario->user_id['user_id']);
+            // $path = storage_path('app/public/');            
+            $file = fopen($path.$csvFileName, 'w');
 
-        ////////////////////// For Article //////////////////////////////////
-        $columns = array('Source', 'Destination', 'PUBMED','Publication Date','Title','ne_id','edge_type');
+            $columns = array('Source', 'Destination', 'PUBMED','Publication Date','Title','ne_id','edge_type','is_article');
+            fputcsv($file, $columns);
+            foreach ($scenario['result_data_set'] as $product) {
+                $row['source']  = $product['source'];
+                $row['destination']  = $product['destination'];
+                $row['pubmed_id']  = $product['pubmed_id'];
+                $row['publication_date']  = $product['publication_date'];
+                $row['title']  = $product['title'];
+                $row['ne_id']  = $product['ne_id'];
+                $row['edge_type']  = $product['edge_type'];
 
-        fputcsv($file, $columns);
-        foreach ($scenario['result_data_set'] as $product) {
-            $row['source']  = $product['source'];
-            $row['destination']  = $product['destination'];
-            $row['pubmed_id']  = $product['pubmed_id'];
-            $row['publication_date']  = $product['publication_date'];
-            $row['title']  = $product['title'];
-            $row['ne_id']  = $product['ne_id'];
-            $row['edge_type']  = $product['edge_type'];
+                fputcsv($file, array($row['source'], $row['destination'], $row['pubmed_id'], $row['publication_date'], $row['title'], $row['ne_id'], $row['edge_type'],'yes'));
+            }
 
-            fputcsv($file, array($row['source'], $row['destination'], $row['pubmed_id'], $row['publication_date'], $row['title'], $row['ne_id'], $row['edge_type']));
+            $blanks = array();
+            for($i=0;$i<2;$i++)
+            {
+                array_push($blanks,array("\t"));
+            }
+            foreach ($blanks as $fields) {
+                fputcsv($file, $fields);
+            }
+            
+            /////////////////////// 2. Start For Sentences /////////////////////////////
+            $sql = "select distinct a.rel_extract_id, a.gene_symbol_e1,a.gene_symbol_e2,a.e1_type_name,a.e2_type_name,a.edge_name,a.pubmed_id,b.sentence from graphs.evidence_metadata_details a,onto_model_source.relation_extraction_outputs b ";
+            $sql = $sql . " Where (";
+            $i=1;
+            foreach ($scenario['result_data_set'] as $product) {            
+                $sql = $sql." (a.ne_id = ".$product['ne_id']." and a.pubmed_id = ".$product['pubmed_id'].") ";
+                if($i < $count)
+                    $sql = $sql." or ";
+                $i++;
+            }
+            $sql = $sql . " ) and b.rel_extract_id=a.rel_extract_id";
+            // echo $sql;
+            $result = DB::select($sql);
+
+            $columnsSentences = array('Gene Symbol E1', 'Type', 'Gene Symbol E2','PMID','Title');
+            fputcsv($file, $columnsSentences);
+            foreach ($result as $producte) {
+                // echo "Product: ".$producte->gene_symbol_e1; 
+                $row['gene_symbol_e1']  = $producte->gene_symbol_e1;
+                $row['e1_type_name']  = $producte->e1_type_name;
+                $row['gene_symbol_e2']  = $producte->gene_symbol_e2;
+                $row['e2_type_name']  = $producte->e2_type_name;
+                $row['edge_name']  = $producte->edge_name;
+                $row['pubmed_id']  = $producte->pubmed_id;
+                $row['sentence']  = $producte->sentence;            
+
+                fputcsv($file, array($row['gene_symbol_e1']."(".$row['e1_type_name'].")", $row['edge_name'],  $row['gene_symbol_e2']."(".$row['e2_type_name'].")", "PMID: ".$row['pubmed_id'], $row['sentence']));
+            }
+            //////////////////////// End For Sentences /////////////////////////////////
+
+            fclose($file);
+                
+            // Excel::store($products, $csvFileName, 'public');
+            // $filePath = Storage::url("storage/{$csvFileName}");
+            // $path = storage_path($filePath);
+
+            $csvFileNameWithPath = $path.$csvFileName;
+            $csvFileNameExtension = pathinfo($csvFileNameWithPath, PATHINFO_EXTENSION);
+
+            // $target = 'advisor/short_videos/'.md5(uniqid()).'_'.time().".".$csvFileNameExtension;//creating complete file name        
+            $target = md5(uniqid()).'_'.time().".".$csvFileNameExtension;//creating complete file name        
+            Storage::disk('s3')->put($target, fopen($csvFileNameWithPath, 'r+'));//uploading video into S3 bucket
+            $s3FileName = Storage::disk('s3')->url( $target );//getting URL of uloaded video from S3
+            // return $s3FileName;
+            
+            $sql = "UPDATE article_sentences_dashboard SET uploaded_file_url='".$s3FileName."' where id='".$lastId."' and user_id = '".$scenario->user_id['user_id']."' ";
+            // echo $sql;
+
+            //After inserting the excel file url into database delete the file from folder
+            unlink($csvFileNameWithPath);
+            
+            $result = DB::connection('pgsql2')->select($sql);
+            return response()->json([
+                'scenarioUpdate' => $result
+            ]);
+            // }
+            //////////////////// End insert data into table ////////////////////////////////
+        }else{
+            ////////////////*************Update the scenario json data and write with new artcle lists **********///////////////
+
+            // echo "no:".$scenario->scenario_exist_id;
+            $sql2 = "select asd.id, asd.name, asd.resultset, asd.uploaded_file_url from article_sentences_dashboard as asd ";
+            $sql2 = $sql2 . " Where asd.id=".$request->scenario_exist_id." and deleted=0";
+            $result2 = DB::connection('pgsql2')->select($sql2);
+            // print_r($result2[0]);
+            $resultUploadedFileUrl = $result2[0]->uploaded_file_url;
+            $resultSetExist = $result2[0]->resultset;
+            $resultSetScenarioName = $result2[0]->name;
+            // echo $resultSetExist;
+            // echo "fileUrl: ".$resultUploadedFileUrl;
+
+            $newJsondata = json_encode($scenario['result_data_set']);
+
+            $finalJsonData = json_encode(
+                array_merge(
+                    json_decode($resultSetExist, true),
+                    json_decode($newJsondata, true)
+                )
+                );
+            // echo $finalJsonData;
+            $count = count(json_decode($finalJsonData));
+
+            //Start here to update the new json into table and write the csv file and insert into S3 bucket
+            $sql3 = "UPDATE article_sentences_dashboard set description='".$scenario->user1_comments."', resultset = '".$finalJsonData."' WHERE id=".$scenario->scenario_exist_id;
+            // echo $sql;
+
+            $result = DB::connection('pgsql2')->select($sql3);
+            // $lastId = DB::connection('pgsql2')->getPdo()->lastInsertId(); // get the last inserted id
+
+            //Start Result set is also stored in the excel format            
+            $csvFileName = $resultSetScenarioName.".csv";
+            $path = storage_path('app/public/'.$scenario->user_id['user_id']);
+            // $path = storage_path('app/public/');            
+            $file = fopen($path.$csvFileName, 'w');
+
+            $columns = array('Source', 'Destination', 'PUBMED','Publication Date','Title','ne_id','edge_type','is_article');
+            fputcsv($file, $columns);
+            foreach (json_decode($finalJsonData) as $product) {
+                $row['source']  = $product->source;
+                $row['destination']  = $product->destination;
+                $row['pubmed_id']  = $product->pubmed_id;
+                $row['publication_date']  = $product->publication_date;
+                $row['title']  = $product->title;
+                $row['ne_id']  = $product->ne_id;
+                $row['edge_type']  = $product->edge_type;
+
+                fputcsv($file, array($row['source'], $row['destination'], $row['pubmed_id'], $row['publication_date'], $row['title'], $row['ne_id'], $row['edge_type'],'yes'));
+            }
+
+            $blanks = array();
+            for($i=0;$i<2;$i++)
+            {
+                array_push($blanks,array("\t"));
+            }
+            foreach ($blanks as $fields) {
+                fputcsv($file, $fields);
+            }
+
+            /////////////////////// 2. Start For Sentences /////////////////////////////
+            $sql = "select distinct a.rel_extract_id, a.gene_symbol_e1,a.gene_symbol_e2,a.e1_type_name,a.e2_type_name,a.edge_name,a.pubmed_id,b.sentence from graphs.evidence_metadata_details a,onto_model_source.relation_extraction_outputs b ";
+            $sql = $sql . " Where (";
+            $i=1;
+            foreach (json_decode($finalJsonData) as $product) {            
+                $sql = $sql." (a.ne_id = ".$product->ne_id." and a.pubmed_id = ".$product->pubmed_id.") ";
+                if($i < $count)
+                    $sql = $sql." or ";
+                $i++;
+            }
+            $sql = $sql . " ) and b.rel_extract_id=a.rel_extract_id";
+            // echo $sql;
+            $result = DB::select($sql);
+
+
+            $columnsSentences = array('Gene Symbol E1', 'Type', 'Gene Symbol E2','PMID','Title');
+            fputcsv($file, $columnsSentences);
+            foreach ($result as $producte) {
+                // echo "Product: ".$producte->gene_symbol_e1; 
+                $row['gene_symbol_e1']  = $producte->gene_symbol_e1;
+                $row['e1_type_name']  = $producte->e1_type_name;
+                $row['gene_symbol_e2']  = $producte->gene_symbol_e2;
+                $row['e2_type_name']  = $producte->e2_type_name;
+                $row['edge_name']  = $producte->edge_name;
+                $row['pubmed_id']  = $producte->pubmed_id;
+                $row['sentence']  = $producte->sentence;            
+
+                fputcsv($file, array($row['gene_symbol_e1']."(".$row['e1_type_name'].")", $row['edge_name'],  $row['gene_symbol_e2']."(".$row['e2_type_name'].")", "PMID: ".$row['pubmed_id'], $row['sentence']));
+            }
+            //////////////////////// End For Sentences /////////////////////////////////
+
+            fclose($file);
+
+            $csvFileNameWithPath = $path.$csvFileName;
+            $csvFileNameExtension = pathinfo($csvFileNameWithPath, PATHINFO_EXTENSION);
+
+            // $target = 'advisor/short_videos/'.md5(uniqid()).'_'.time().".".$csvFileNameExtension;//creating complete file name        
+            $target = md5(uniqid()).'_'.time().".".$csvFileNameExtension;//creating complete file name        
+            Storage::disk('s3')->put($target, fopen($csvFileNameWithPath, 'r+'));//uploading video into S3 bucket
+            $s3FileName = Storage::disk('s3')->url( $target );//getting URL of uloaded video from S3
+            // return $s3FileName;
+            
+            //unlink the existing uploaded file url from the S3 bucket and create the new one
+            $s3_filename = basename($resultUploadedFileUrl);
+            Storage::disk('s3')->delete($s3_filename);
+
+            $sql4 = "UPDATE article_sentences_dashboard SET uploaded_file_url='".$s3FileName."' where id='".$scenario->scenario_exist_id."' and user_id = '".$scenario->user_id['user_id']."' ";
+            // echo $sql;
+
+            //After inserting the excel file url into database delete the file from folder
+            unlink($csvFileNameWithPath);
+            
+            $result = DB::connection('pgsql2')->select($sql4);
+            return response()->json([
+                'scenarioUpdate' => $result
+            ]);
+
         }
+        
+    }
 
-        //////////////////////////// For Sentences /////////////////////////////
-        $sql = "select distinct a.rel_extract_id, a.gene_symbol_e1,a.gene_symbol_e2,a.e1_type_name,a.e2_type_name,a.edge_name,a.pubmed_id,b.sentence from graphs.evidence_metadata_details a,onto_model_source.relation_extraction_outputs b ";
-        $sql = $sql . " Where (";
-        $i=1;
-        foreach ($scenario['result_data_set'] as $product) {            
-            $sql = $sql." (a.ne_id = ".$product['ne_id']." and a.pubmed_id = ".$product['pubmed_id'].") ";
-            if($i < $count)
-                $sql = $sql." or ";
-            $i++;
-        }
-        $sql = $sql . " ) and b.rel_extract_id=a.rel_extract_id";
-        // echo $sql;
-        $result = DB::select($sql);
-
-        $columnsSentences = array('Gene Symbol E1', 'Type', 'Gene Symbol E2','PMID','Title');
-        fputcsv($file, $columnsSentences);
-        foreach ($result as $producte) {
-            echo "Product: ".$producte->gene_symbol_e1; 
-            $row['gene_symbol_e1']  = $producte->gene_symbol_e1;
-            $row['e1_type_name']  = $producte->e1_type_name;
-            $row['gene_symbol_e2']  = $producte->gene_symbol_e2;
-            $row['e2_type_name']  = $producte->e2_type_name;
-            $row['edge_name']  = $producte->edge_name;
-            $row['pubmed_id']  = $producte->pubmed_id;
-            $row['sentence']  = $producte->sentence;            
-
-            fputcsv($file, array($row['gene_symbol_e1']."(".$row['e1_type_name'].")", $row['edge_name'],  $row['gene_symbol_e2']."(".$row['e2_type_name'].")", "PMID: ".$row['pubmed_id'], $row['sentence']));
-        }
-        //End hete for Sentences
-
-        $newData = response()->json([
-            'data' => $result
+    public function getArticleSentencesScenario(Request $request){
+        $sql = "select asd.id, asd.user_id, asd.name, asd.uploaded_file_url from article_sentences_dashboard as asd ";
+        $sql = $sql . " Where asd.user_id=".$request->user_id." and deleted=0";
+        // echo $sql; 
+        $result = DB::connection('pgsql2')->select($sql);
+        return response()->json([
+            'scenario_exist_lists' => $result
         ]);
-
-        fclose($file);
-        // Excel::store($products, $csvFileName, 'public');
-        // $filePath = Storage::url("storage/{$csvFileName}");
-        // $path = storage_path($filePath);
-
-        // for($i=0; $i<count($request->articles); $i++){
-        //     $ne_ids = $request->articles[$i]['ne_id'].",";
-        // }
-        // $ne_ids = trim($ne_ids,",");
-        // echo 'ne_ids = '.$ne_ids;
-
-        // $ne_id = $request->data;
-        // $sql = "select a.gene_symbol_e1, a.gene_symbol_e2, a.e1_type_name, a.e2_type_name, a.edge_name, a.pubmed_id,
-        //         b.sentence
-        //         from 
-        //         graphs.evidence_metadata_details a, 
-        //         onto_model_source.relation_extraction_outputs b
-        //         where 
-        //         a.ne_id in (".$ne_ids.")
-        //         and 
-        //         b.rel_extract_id = a.rel_extract_id";  
-        // // echo $sql;     
-        // $result = DB::select($sql);
-        // return response()->json([
-        //     'data' => $result
-        // ]);
     }
 
     //1 CT API

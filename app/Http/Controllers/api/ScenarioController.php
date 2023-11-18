@@ -206,8 +206,54 @@ class ScenarioController extends Controller
         Storage::disk('s3')->delete($s3_filename);
         //End to delete the file from S3 bucket
 
-        $sql = "UPDATE scenarios set deleted = 1 where id=" . $scenarioID . " and user_id =".$userId;
+        // $sql = "UPDATE scenarios set deleted = 1 where id=" . $scenarioID . " and user_id =".$userId;
         $sql = "DELETE FROM scenarios where id=" . $scenarioID . " and user_id =".$userId;
+        // echo $sql;
+        $result = DB::connection('pgsql2')->select($sql);
+        return response()->json([
+            'scenariosDel' => $result
+        ]);
+    }
+
+    // Get User Scenario
+    public function getUserArticleSentencesDashboard(Request $request){
+        $userId = $request->user_id;
+        $sql = "select u.user_name, s.id, s.user_id, s.name, s.resultset, s.uploaded_file_url, s.description, s.created_at FROM article_sentences_dashboard as s LEFT JOIN users as u on s.user_id=u.user_id 
+        WHERE s.deleted = 0 and s.user_id =".$userId." order by id";
+        // echo $sql;
+        $result = DB::connection('pgsql2')->select($sql);
+        return response()->json([
+            'scenarios' => $result
+        ]);
+    }
+    
+    // Delete User Scenario
+    public function delArticleSentencesScenario(Request $request){
+        if ($request->scenario_id != "undefined")
+            $scenarioID = $request->scenario_id;
+        else
+            $scenarioID = 0;
+
+        $userId = $request->user_id;
+
+        //Start to delete the file from S3 bucket
+        $sql = "select s.uploaded_file_url FROM article_sentences_dashboard as s WHERE s.id = ".$scenarioID." and s.user_id =".$userId;        
+        $result = DB::connection('pgsql2')->select($sql);        
+        
+        // $uploaded_file_url = "";
+        if (count($result) > 0) {
+            foreach ($result as $value) {
+                $uploaded_file_url = $value->uploaded_file_url;
+            }
+        }
+        // echo "url: ".$uploaded_file_url;
+
+        $s3_filename = basename($uploaded_file_url);
+        Storage::disk('s3')->delete($s3_filename);
+        //End to delete the file from S3 bucket
+
+        // $sql = "UPDATE article_sentences_dashboard set deleted = 1 where id=" . $scenarioID . " and user_id =".$userId;
+        $sql = "DELETE FROM article_sentences_dashboard where id=" . $scenarioID . " and user_id =".$userId;
         // echo $sql;
         $result = DB::connection('pgsql2')->select($sql);
         return response()->json([

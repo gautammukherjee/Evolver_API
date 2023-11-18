@@ -48,6 +48,7 @@ Route::post('/getDistributionRelationType', [NodeController::class, 'getDistribu
 Route::post('/getEvidenceData', [NodeController::class, 'getEvidenceData']);
 
 Route::post('/downloadAtricleAndEvidencesData', [NodeController::class, 'downloadAtricleAndEvidencesData']);
+Route::post('/getArticleSentencesScenario', [NodeController::class, 'getArticleSentencesScenario']);
 
 //2 level
 Route::post('/getNodeSelects2', [NodeController::class, 'getNodeSelects2']);
@@ -114,4 +115,8 @@ Route::post('/delUserScenario', [ScenarioController::class, 'delUserScenario']);
 Route::post('/getEdgeTypeSce1', [NodeRevampController::class, 'getEdgeTypeSce1']);
 Route::post('/getEdgeTypeSce2', [NodeRevampController::class, 'getEdgeTypeSce2']);
 Route::post('/getEdgeTypeSce3', [NodeRevampController::class, 'getEdgeTypeSce3']);
+
 // Route::post('/downloadAtricleAndEvidencesData', [NodeRevampController::class, 'downloadAtricleAndEvidencesData']);
+
+Route::post('/getUserArticleSentencesDashboard', [ScenarioController::class, 'getUserArticleSentencesDashboard']);
+Route::post('/delArticleSentencesScenario', [ScenarioController::class, 'delArticleSentencesScenario']);
