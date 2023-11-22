@@ -219,7 +219,7 @@ class ScenarioController extends Controller
     public function getUserArticleSentencesDashboard(Request $request){
         $userId = $request->user_id;
         $sql = "select u.user_name, s.id, s.user_id, s.name, s.resultset, s.uploaded_file_url, s.description, s.created_at FROM article_sentences_dashboard as s LEFT JOIN users as u on s.user_id=u.user_id 
-        WHERE s.deleted = 0 and s.user_id =".$userId." order by id";
+        WHERE s.deleted = 0 and s.user_id =".$userId." order by created_at desc";
         // echo $sql;
         $result = DB::connection('pgsql2')->select($sql);
         return response()->json([
