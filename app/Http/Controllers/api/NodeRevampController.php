@@ -1262,7 +1262,7 @@ class NodeRevampController extends Controller
         }
 
         if ($request->limitValue != "") {
-            $sql = $sql . "limit " . $request->limitValue;
+            $sql = $sql . " limit " . $request->limitValue;
         }
         // echo $sql;
         $result = DB::select($sql);
